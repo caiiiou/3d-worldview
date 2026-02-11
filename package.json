@@ -1,0 +1,14 @@
+{
+  "name": "3d-worldview",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "devDependencies": {
+    "astro": "^6.0.3",
+    "typescript": "^5.0.0"
+  }
+}
