@@ -1,0 +1,27 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+width: 100%; height: 100%;
+background: #0a0e14;
+font-family: monospace;
+color: #e4ebee;
+overflow: hidden;
+}
+
+/* -- Globe -- */
+#cesiumContainer {
+position: absolute;
+inset: 0;
+width: 100%; height: 100%;
+overflow: hidden;
+}
+#cesiumContainer .cesium-viewer,
+#cesiumContainer .cesium-viewer-cesiumWidgetContainer,
+#cesiumContainer .cesium-widget,
+#cesiumContainer .cesium-widget canvas {
+width: 100% !important; height: 100% !important;
+}
+.cesium-viewer-toolbar, .cesium-viewer-bottom,
+.cesium-viewer-fullscreenContainer, .cesium-viewer-animationContainer,
+.cesium-viewer-timelineContainer, .cesium-credit-lightbox-overlay,
+.cesium-viewer-geocoderContainer { display: none !important; }
+.cesium-widget-credits { display: none !important; }
