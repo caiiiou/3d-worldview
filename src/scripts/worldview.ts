@@ -13,6 +13,18 @@ function init() {
     });
     viewer.scene.morphTo3D(0);
 
+    viewer.scene.fog.enabled = false;
+    viewer.scene.skyAtmosphere.show = false;
+    viewer.scene.globe.showGroundAtmosphere = false;
+    viewer.scene.highDynamicRange = false;
+    viewer.scene.fxaa = false;
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+    viewer.scene.skyBox.show = false;
+    viewer.scene.sun.show = false;
+    viewer.scene.moon.show = false;
+    viewer.scene.globe.enableLighting = false;
+    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0a0e14');
+
 }
 
 init();
