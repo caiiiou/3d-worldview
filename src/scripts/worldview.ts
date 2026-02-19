@@ -25,6 +25,12 @@ function init() {
     viewer.scene.globe.enableLighting = false;
     viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0a0e14');
 
+    // Start at Tokyo (Shibuya area)
+    viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(139.88940, 35.62459, 180),
+        orientation: { heading: Cesium.Math.toRadians(295), pitch: Cesium.Math.toRadians(-16), roll: 0 },
+    });
+
 }
 
 init();
