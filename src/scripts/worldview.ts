@@ -31,6 +31,17 @@ function init() {
         orientation: { heading: Cesium.Math.toRadians(295), pitch: Cesium.Math.toRadians(-16), roll: 0 },
     });
 
+    // 3D Tiles
+    var tileset3d = null;
+    Cesium.Cesium3DTileset.fromIonAssetId(2275207, {
+    }).then(function(t) {
+        tileset3d = t;
+        viewer.scene.primitives.add(t);
+        viewer.scene.requestRender();
+    }).catch(function(e) {
+        console.log('3D Tiles:', e.message);
+    });
+
 }
 
 init();
