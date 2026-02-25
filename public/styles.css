@@ -47,3 +47,14 @@ letter-spacing: 2px; border-left: 2px solid #e06c75; padding-left: 8px;
 }
 .ops-id { font-size: 10px; color: #7a8a92; margin-top: 3px; }
 .mode-label { font-size: 20px; margin-top: 4px; letter-spacing: 3px; font-weight: bold; color: #ffffff; }
+.summary-block { margin-top: 6px; font-size: 9px; color: #7a8a92; max-width: 300px; }
+.summary-block span { color: #95a5ad; }
+
+/* -- Top Right -- */
+#hud-topright { top: 16px; right: 20px; text-align: right; }
+.rec-dot {
+display: inline-block; width: 7px; height: 7px;
+background: #e06c75; border-radius: 50%; margin-right: 5px;
+animation: blink 1s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }

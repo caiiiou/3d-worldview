@@ -42,6 +42,27 @@ function init() {
         console.log('3D Tiles:', e.message);
     });
 
+    // -- Cached DOM refs --
+    var domRecTime = document.getElementById('rec-time');
+
+    // -- Clock (user local timezone) --
+    function pad2(n) { return (n < 10 ? '0' : '') + n; }
+    var tzAbbr = (function() {
+        try {
+            var m = new Date().toString().match(/\(([^)]+)\)$/);
+            if (m) { return m[1].split(' ').map(function(w){return w[0];}).join(''); }
+        } catch(e) {}
+        return 'LOC';
+    })();
+    function updateClock() {
+        var now = new Date();
+        var ts = now.getFullYear() + '-' + pad2(now.getMonth()+1) + '-' + pad2(now.getDate()) + ' ' +
+                 pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds()) + ' ' + tzAbbr;
+        domRecTime.textContent = ts;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
 }
 
 init();
