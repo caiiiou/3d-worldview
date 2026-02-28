@@ -63,6 +63,50 @@ function init() {
     updateClock();
     setInterval(updateClock, 1000);
 
+    var domDms = document.getElementById('coord-dms');
+    var domMgrs = document.getElementById('coord-mgrs');
+    var domAlt = document.getElementById('coord-alt');
+    var domHdg = document.getElementById('coord-speed');
+
+    // -- Coordinates --
+    function toDMS(deg) {
+        var a = Math.abs(deg);
+        var d = Math.floor(a);
+        var mf = (a - d) * 60;
+        var m = Math.floor(mf);
+        var s = ((mf - m) * 60).toFixed(2);
+        return d + '\u00B0' + String(m).padStart(2,'0') + "'" + String(s).padStart(5,'0') + '"';
+    }
+
+    var handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    var _moveRaf = 0;
+    var _pendingPos = null;
+    function updateCoords() {
+        _moveRaf = 0;
+        var pos = _pendingPos;
+        if (!pos) return;
+        var ray = viewer.camera.getPickRay(pos);
+        var cart = viewer.scene.globe.pick(ray, viewer.scene);
+        if (cart) {
+            var c = Cesium.Cartographic.fromCartesian(cart);
+            var lat = Cesium.Math.toDegrees(c.latitude);
+            var lon = Cesium.Math.toDegrees(c.longitude);
+            domDms.textContent = toDMS(lat) + (lat >= 0 ? 'N' : 'S') + ' ' + toDMS(lon) + (lon >= 0 ? 'E' : 'W');
+            var zone = Math.floor((lon + 180) / 6) + 1;
+            var band = 'CDEFGHJKLMNPQRSTUVWX'[Math.floor((lat + 80) / 8)] || 'Z';
+            domMgrs.textContent =
+                zone + band + ' ' + Math.abs(Math.floor(lon * 1000) % 10000).toString().padStart(4,'0') + ' ' +
+                Math.abs(Math.floor(lat * 1000) % 10000).toString().padStart(4,'0');
+        }
+        var camC = viewer.camera.positionCartographic;
+        domAlt.textContent = 'ALT: ' + (camC.height / 1000).toFixed(1) + ' KM';
+        domHdg.textContent = 'HDG: ' + Cesium.Math.toDegrees(viewer.camera.heading).toFixed(1) + '\u00B0';
+    }
+    handler.setInputAction(function(mov) {
+        _pendingPos = mov.endPosition;
+        if (!_moveRaf) _moveRaf = requestAnimationFrame(updateCoords);
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
 }
 
 init();
