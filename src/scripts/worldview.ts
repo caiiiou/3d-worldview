@@ -107,6 +107,23 @@ function init() {
         if (!_moveRaf) _moveRaf = requestAnimationFrame(updateCoords);
     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
+    var domNeedle = document.getElementById('compass-needle');
+    var domSummary = document.getElementById('summary-text');
+
+    // -- Compass --
+    var _lastHeading = -1;
+    viewer.camera.changed.addEventListener(function() {
+        var h = Cesium.Math.toDegrees(viewer.camera.heading);
+        if (Math.abs(h - _lastHeading) >= 0.1) {
+            _lastHeading = h;
+            domNeedle.setAttribute('transform', 'rotate(' + h + ' 25 25)');
+        }
+    });
+    viewer.camera.moveEnd.addEventListener(function() {
+        var c = viewer.camera.positionCartographic;
+        domSummary.textContent = 'OBSERVING ' + Cesium.Math.toDegrees(c.latitude).toFixed(2) + ', ' + Cesium.Math.toDegrees(c.longitude).toFixed(2);
+    });
+
 }
 
 init();
