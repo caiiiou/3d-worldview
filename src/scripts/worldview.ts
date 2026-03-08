@@ -124,6 +124,26 @@ function init() {
         domSummary.textContent = 'OBSERVING ' + Cesium.Math.toDegrees(c.latitude).toFixed(2) + ', ' + Cesium.Math.toDegrees(c.longitude).toFixed(2);
     });
 
+    // -- GPU Post-Process Shaders --
+    var crtShader = new Cesium.PostProcessStage({
+        fragmentShader: [
+            'uniform sampler2D colorTexture;',
+            'uniform vec2 colorTextureDimensions;',
+            'in vec2 v_textureCoordinates;',
+            'void main() {',
+            '  vec4 c = texture(colorTexture, v_textureCoordinates);',
+            '  float gray = dot(c.rgb, vec3(0.299, 0.587, 0.114));',
+            '  vec3 desat = mix(vec3(gray), c.rgb, 0.6);',
+            '  desat = (desat - 0.5) * 1.25 + 0.5;',
+            '  desat *= 0.85;',
+            '  float scanline = sin(v_textureCoordinates.y * colorTextureDimensions.y * 1.5) * 0.04;',
+            '  desat -= scanline;',
+            '  desat = vec3(desat.r * 1.2, desat.g * 0.9, desat.b * 0.4);',
+            '  out_FragColor = vec4(clamp(desat, 0.0, 1.0), 1.0);',
+            '}',
+        ].join('\n')
+    });
+
 }
 
 init();
