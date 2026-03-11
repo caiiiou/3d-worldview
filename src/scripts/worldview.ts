@@ -163,6 +163,23 @@ function init() {
         ].join('\n')
     });
 
+    var flirShader = new Cesium.PostProcessStage({
+        fragmentShader: [
+            'uniform sampler2D colorTexture;',
+            'in vec2 v_textureCoordinates;',
+            'void main() {',
+            '  vec4 c = texture(colorTexture, v_textureCoordinates);',
+            '  float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));',
+            '  lum = clamp((lum - 0.5) * 1.6 + 0.5, 0.0, 1.0) * 1.05;',
+            '  vec3 cold = vec3(0.0, 0.0, 0.5);',
+            '  vec3 mid = vec3(1.0, 0.55, 0.0);',
+            '  vec3 hot = vec3(1.0, 1.0, 0.2);',
+            '  vec3 col = lum < 0.5 ? mix(cold, mid, lum * 2.0) : mix(mid, hot, (lum - 0.5) * 2.0);',
+            '  out_FragColor = vec4(col, 1.0);',
+            '}',
+        ].join('\n')
+    });
+
 }
 
 init();
