@@ -144,6 +144,25 @@ function init() {
         ].join('\n')
     });
 
+    var nvShader = new Cesium.PostProcessStage({
+        fragmentShader: [
+            'uniform sampler2D colorTexture;',
+            'uniform vec2 colorTextureDimensions;',
+            'in vec2 v_textureCoordinates;',
+            'void main() {',
+            '  vec4 c = texture(colorTexture, v_textureCoordinates);',
+            '  float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));',
+            '  lum = pow(lum, 0.8) * 1.2;',
+            '  lum = clamp((lum - 0.5) * 1.3 + 0.5, 0.0, 1.0);',
+            '  lum *= 0.85;',
+            '  float scanline = sin(v_textureCoordinates.y * colorTextureDimensions.y * 0.8) * 0.025;',
+            '  float noise = fract(sin(dot(v_textureCoordinates * czm_frameNumber * 0.01, vec2(12.9898, 78.233))) * 43758.5453) * 0.04;',
+            '  lum = lum - scanline + noise;',
+            '  out_FragColor = vec4(lum * 0.12, lum * 0.9, lum * 0.1, 1.0);',
+            '}',
+        ].join('\n')
+    });
+
 }
 
 init();
