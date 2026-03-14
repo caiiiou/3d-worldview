@@ -109,3 +109,55 @@ padding: 1px 4px; line-height: 1; letter-spacing: 0;
 }
 .enter-hint { font-size: 8px; color: #c0ccd2; letter-spacing: 1px; margin-left: 5px; }
 
+/* ======================================
+   VISION MODES
+   ====================================== */
+
+/* CRT -- warm amber phosphor look */
+.mode-crt { --accent: #ffb347; --accent-dim: #805a24; --accent-bg: rgba(255,179,71,0.04); --accent-border: rgba(255,179,71,0.15); --bg: #0a0704; }
+.mode-crt { background: var(--bg); }
+.mode-crt .hud, .mode-crt .style-btn,
+.mode-crt .brand, .mode-crt .mode-label, .mode-crt .coord-value,
+.mode-crt #loc-input, .mode-crt #loc-go { color: var(--accent); }
+.mode-crt .style-btn,
+.mode-crt #loc-input, .mode-crt #loc-go { border-color: var(--accent-border); }
+.mode-crt .classification { color: #ff6633 !important; border-color: #ff6633 !important; }
+.mode-crt .hud-label, .mode-crt .subtitle, .mode-crt .summary-block,
+.mode-crt .ops-id, .mode-crt .coord-dms { color: #805a24; }
+.mode-crt #vignette {
+background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 30%, rgba(10,7,0,0.4) 55%, rgba(10,7,4,0.9) 75%, var(--bg) 100%);
+}
+
+/* Night Vision -- color grading handled by GPU shader */
+.mode-nightvision { --accent: #00ff41; --bg: #010d01; background: var(--bg); }
+.mode-nightvision .hud,
+.mode-nightvision .style-btn, .mode-nightvision .brand, .mode-nightvision .mode-label,
+.mode-nightvision .coord-value,
+.mode-nightvision #loc-input, .mode-nightvision #loc-go { color: var(--accent); }
+.mode-nightvision .style-btn,
+.mode-nightvision #loc-input, .mode-nightvision #loc-go { border-color: rgba(0,255,65,0.2); }
+.mode-nightvision #vignette {
+background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 30%, rgba(0,20,0,0.4) 55%, rgba(0,10,0,0.9) 75%, #010d01 100%);
+}
+.mode-nightvision body::before {
+background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,0,0.03) 2px, rgba(0,255,0,0.03) 3px);
+}
+.mode-nightvision .classification { color: #00ff41 !important; border-color: #00ff41 !important; }
+.mode-nightvision .hud-label, .mode-nightvision .subtitle, .mode-nightvision .summary-block,
+.mode-nightvision .ops-id, .mode-nightvision .coord-dms { color: #1a6630; }
+
+/* FLIR -- color grading handled by GPU shader */
+.mode-flir { --accent: #ff6b35; --bg: #0a0406; background: var(--bg); }
+.mode-flir .hud,
+.mode-flir .style-btn, .mode-flir .brand, .mode-flir .mode-label,
+.mode-flir .coord-value,
+.mode-flir #loc-input, .mode-flir #loc-go { color: var(--accent); }
+.mode-flir .style-btn,
+.mode-flir #loc-input, .mode-flir #loc-go { border-color: rgba(255,107,53,0.15); }
+.mode-flir .classification { color: #ff3333 !important; border-color: #ff3333 !important; }
+.mode-flir .hud-label, .mode-flir .subtitle, .mode-flir .summary-block,
+.mode-flir .ops-id, .mode-flir .edge-text-left, .mode-flir .edge-text-right { color: #663320; }
+.mode-flir #vignette {
+background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 30%, rgba(10,4,0,0.4) 55%, rgba(10,4,6,0.9) 75%, var(--bg) 100%);
+}
