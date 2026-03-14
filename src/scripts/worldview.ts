@@ -180,6 +180,60 @@ function init() {
         ].join('\n')
     });
 
+    crtShader.enabled = false;
+    nvShader.enabled = false;
+    flirShader.enabled = false;
+    viewer.scene.postProcessStages.add(crtShader);
+    viewer.scene.postProcessStages.add(nvShader);
+    viewer.scene.postProcessStages.add(flirShader);
+
+    var domModeLabel = document.getElementById('mode-label');
+    var domActiveStyle = document.getElementById('active-style-name');
+    var styleButtons = document.querySelectorAll('.style-btn');
+
+    var shaderMap = {
+        crt: crtShader,
+        nightvision: nvShader,
+        flir: flirShader,
+    };
+
+    var modeNames = {
+        normal: 'NORMAL',
+        crt: 'CRT',
+        nightvision: 'NIGHT VISION',
+        flir: 'FLIR',
+    };
+
+    var _currentMode = 'normal';
+    function setVisionMode(mode) {
+        document.body.classList.remove('mode-' + _currentMode);
+        document.body.classList.add('mode-' + mode);
+        _currentMode = mode;
+        for (var i = 0; i < styleButtons.length; i++) {
+            var b = styleButtons[i];
+            b.classList.remove('active', 'pulse');
+            if (b.dataset.mode === mode) {
+                b.classList.add('active');
+                void b.offsetWidth;
+                b.classList.add('pulse');
+            }
+        }
+        var name = modeNames[mode] || mode.toUpperCase();
+        domModeLabel.textContent = name;
+        domActiveStyle.textContent = name;
+        var keys = Object.keys(shaderMap);
+        for (var j = 0; j < keys.length; j++) {
+            shaderMap[keys[j]].enabled = (keys[j] === mode);
+        }
+        viewer.scene.requestRender();
+    }
+
+    for (var si = 0; si < styleButtons.length; si++) {
+        styleButtons[si].addEventListener('click', function() {
+            setVisionMode(this.dataset.mode);
+        });
+    }
+
 }
 
 init();
