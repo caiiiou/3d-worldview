@@ -234,6 +234,20 @@ function init() {
         });
     }
 
+    // -- Keyboard shortcuts --
+    document.addEventListener('keydown', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+            if (e.key === 'Escape') { e.target.blur(); }
+            return;
+        }
+        switch(e.key) {
+            case '1': setVisionMode('normal'); break;
+            case '2': setVisionMode('crt'); break;
+            case '3': setVisionMode('nightvision'); break;
+            case '4': setVisionMode('flir'); break;
+        }
+    });
+
 }
 
 init();
