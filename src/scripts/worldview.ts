@@ -248,6 +248,33 @@ function init() {
         }
     });
 
+    // -- Location search --
+    // [lon, lat, range, type, country]
+    var locations = {
+        // US Cities (alphabetical)
+        'chicago': [-87.63434, 41.88219, 2400, 'city', 'US'],
+        'houston': [-95.36456, 29.75830, 1500, 'city', 'US'],
+        'las vegas': [-115.15997, 36.13531, 3000, 'city', 'US', 42.8],
+        'los angeles': [-118.26114, 34.04506, 1500, 'city', 'US'],
+        'miami': [-80.1918, 25.7617, 1500, 'city', 'US'],
+        'new york': [-74.01130, 40.70785, 1500, 'city', 'US'],
+        'san francisco': [-122.39820, 37.79002, 1200, 'city', 'US'],
+        'seattle': [-122.33503, 47.61030, 1500, 'city', 'US'],
+        'washington dc': [-77.0369, 38.9072, 1200, 'city', 'US'],
+        // US Landmarks (alphabetical)
+        'alcatraz': [-122.4229, 37.8267, 800, 'landmark', 'US'],
+        'central park': [-73.9654, 40.7829, 2000, 'landmark', 'US'],
+        'golden gate bridge': [-122.4786, 37.8199, 1800, 'landmark', 'US'],
+        'hoover dam': [-114.7377, 36.0160, 1500, 'landmark', 'US'],
+        'pentagon': [-77.05672, 38.86939, 900, 'landmark', 'US'],
+        'space needle': [-122.3493, 47.6205, 600, 'landmark', 'US'],
+        'statue of liberty': [-74.04353, 40.68949, 600, 'landmark', 'US', 285],
+        'washington monument': [-77.0353, 38.8895, 800, 'landmark', 'US'],
+        'white house': [-77.03690, 38.89689, 250, 'landmark', 'US'],
+    };
+
+    var countryNames = { 'US': 'UNITED STATES' };
+
 }
 
 init();
