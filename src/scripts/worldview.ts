@@ -275,6 +275,53 @@ function init() {
 
     var countryNames = { 'US': 'UNITED STATES' };
 
+    var countryNames = { 'US': 'UNITED STATES' };
+
+    // -- Build location tags grouped by country --
+    (function() {
+        var landmarkEl = document.getElementById('loc-landmarks');
+        var cityEl = document.getElementById('loc-cities');
+        var countryOrder = ['US'];
+        var _activeTag = null;
+        function makeTag(key, loc) {
+            var btn = document.createElement('button');
+            btn.className = 'loc-tag' + (loc[3] === 'landmark' ? ' landmark' : ' city');
+            btn.textContent = key.toUpperCase();
+            btn.addEventListener('click', function() {
+                if (_activeTag) _activeTag.classList.remove('active');
+                btn.classList.add('active');
+                _activeTag = btn;
+                flyToLocation(key);
+            });
+            return btn;
+        }
+        function buildGroup(parentEl, type) {
+            var grouped = {};
+            Object.keys(locations).forEach(function(key) {
+                var loc = locations[key];
+                if (loc[3] !== type) return;
+                var c = loc[4];
+                if (!grouped[c]) grouped[c] = [];
+                grouped[c].push(key);
+            });
+            countryOrder.forEach(function(c) {
+                if (!grouped[c]) return;
+                var label = document.createElement('div');
+                label.className = 'loc-country-label';
+                label.textContent = countryNames[c] || c;
+                parentEl.appendChild(label);
+                var tags = document.createElement('div');
+                tags.className = 'loc-tags';
+                grouped[c].forEach(function(key) {
+                    tags.appendChild(makeTag(key, locations[key]));
+                });
+                parentEl.appendChild(tags);
+            });
+        }
+        buildGroup(landmarkEl, 'landmark');
+        buildGroup(cityEl, 'city');
+    })();
+
 }
 
 init();
