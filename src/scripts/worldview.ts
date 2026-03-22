@@ -322,6 +322,44 @@ function init() {
         buildGroup(cityEl, 'city');
     })();
 
+    function flyToTarget(lon, lat, range, label, type, headingDeg) {
+        var isLandmark = type === 'landmark';
+        var targetAlt = isLandmark ? range * 0.08 : 0;
+        var target = Cesium.Cartesian3.fromDegrees(lon, lat, targetAlt);
+        var heading = Cesium.Math.toRadians(headingDeg != null ? headingDeg : 30);
+        var pitch = Cesium.Math.toRadians(isLandmark ? -22 : -25);
+        var sphereRadius = isLandmark ? Math.max(range * 0.05, 20) : 10;
+        viewer.camera.flyToBoundingSphere(
+            new Cesium.BoundingSphere(target, sphereRadius),
+            {
+                offset: new Cesium.HeadingPitchRange(heading, pitch, range),
+                duration: 2.5,
+                easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
+            }
+        );
+        document.getElementById('loc-name').textContent = label.toUpperCase();
+        document.getElementById('loc-landmark').textContent = type === 'landmark' ? 'LANDMARK' : 'CITY';
+        document.getElementById('summary-text').textContent = 'TARGET: ' + label.toUpperCase();
+    }
+
+    function flyToLocation(name) {
+        var q = name || document.getElementById('loc-input').value.toLowerCase().trim();
+        if (!q) return;
+        var match = locations[q];
+        if (match) {
+            flyToTarget(match[0], match[1], match[2], q, match[3], match[5]);
+            return;
+        }
+        var keys = Object.keys(locations);
+        for (var i = 0; i < keys.length; i++) {
+            if (keys[i].indexOf(q) !== -1) {
+                flyToLocation(keys[i]);
+                return;
+            }
+        }
+    }
+    (window as any).flyToLocation = flyToLocation;
+
 }
 
 init();
