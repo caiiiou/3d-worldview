@@ -254,3 +254,17 @@ cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease, color
 .loc-tag.landmark { border-left: 2px solid #e06c75; }
 .loc-tag.city { border-left: 2px solid #4fc3f7; }
 /* -- Autocomplete dropdown -- */
+/* -- Autocomplete dropdown -- */
+#loc-autocomplete {
+display: none; position: absolute; bottom: 100%; left: 0;
+width: 300px; max-height: 180px; overflow-y: auto;
+background: rgba(2,4,8,0.92); border: 1px solid rgba(200,215,220,0.18);
+border-radius: 12px; margin-bottom: 4px; z-index: 30; overflow: hidden;
+}
+.loc-ac-item {
+padding: 5px 10px; font-size: 9px; color: #e4ebee; cursor: pointer;
+font-family: 'Fira Code', monospace; letter-spacing: 1px;
+border-bottom: 1px solid rgba(200,215,220,0.06);
+}
+.loc-ac-item:hover, .loc-ac-item.selected { background: rgba(200,215,220,0.12); }
+.loc-ac-item .ac-type { color: #7a8a92; font-size: 7px; margin-left: 8px; }

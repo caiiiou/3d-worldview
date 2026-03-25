@@ -360,6 +360,87 @@ function init() {
     }
     (window as any).flyToLocation = flyToLocation;
 
+    var locInput = document.getElementById('loc-input');
+    var acDropdown = document.getElementById('loc-autocomplete');
+    var acSelectedIdx = -1;
+
+    locInput.addEventListener('keydown', function(e) {
+        var items = acDropdown.querySelectorAll('.loc-ac-item');
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            acSelectedIdx = Math.min(acSelectedIdx + 1, items.length - 1);
+            updateAcSelection(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            acSelectedIdx = Math.max(acSelectedIdx - 1, -1);
+            updateAcSelection(items);
+        } else if (e.key === 'Enter') {
+            if (acSelectedIdx >= 0 && items[acSelectedIdx]) {
+                items[acSelectedIdx].click();
+            } else {
+                hideAutocomplete();
+                flyToLocation();
+            }
+        } else if (e.key === 'Escape') {
+            hideAutocomplete();
+        }
+    });
+
+    var _acTimer = null;
+    locInput.addEventListener('input', function() {
+        var self = this;
+        clearTimeout(_acTimer);
+        _acTimer = setTimeout(function() {
+            var q = self.value.toLowerCase().trim();
+            if (q.length < 1) { hideAutocomplete(); return; }
+            var matches = [];
+            var keys = Object.keys(locations);
+            for (var i = 0; i < keys.length; i++) {
+                if (keys[i].indexOf(q) !== -1) {
+                    var loc = locations[keys[i]];
+                    matches.push({ name: keys[i], type: loc[3], country: loc[4] });
+                }
+            }
+            if (matches.length === 0) { hideAutocomplete(); return; }
+            acDropdown.innerHTML = '';
+            acSelectedIdx = -1;
+            for (var j = 0; j < matches.length; j++) {
+                (function(m, idx) {
+                    var div = document.createElement('div');
+                    div.className = 'loc-ac-item';
+                    var typeLabel = m.type === 'landmark' ? 'LANDMARK' : 'CITY';
+                    div.innerHTML = m.name.toUpperCase() + '<span class="ac-type">' + typeLabel + ' / ' + (countryNames[m.country] || m.country) + '</span>';
+                    div.addEventListener('click', function() {
+                        locInput.value = m.name;
+                        hideAutocomplete();
+                        flyToLocation(m.name);
+                    });
+                    div.addEventListener('mouseenter', function() {
+                        acSelectedIdx = idx;
+                        updateAcSelection(acDropdown.querySelectorAll('.loc-ac-item'));
+                    });
+                    acDropdown.appendChild(div);
+                })(matches[j], j);
+            }
+            acDropdown.style.display = 'block';
+        }, 60);
+    });
+
+    locInput.addEventListener('blur', function() {
+        setTimeout(hideAutocomplete, 150);
+    });
+
+    function hideAutocomplete() {
+        acDropdown.style.display = 'none';
+        acSelectedIdx = -1;
+    }
+
+    function updateAcSelection(items) {
+        items.forEach(function(el, i) {
+            el.classList.toggle('selected', i === acSelectedIdx);
+        });
+    }
+
 }
 
 init();

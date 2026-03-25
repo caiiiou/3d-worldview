@@ -70,6 +70,14 @@
             <div id="loc-cities"></div>
         </div>
     </div>
+    <div class="loc-row">
+        <div style="position:relative;">
+            <input type="text" id="loc-input" placeholder="Search any location..." autocomplete="off">
+            <span class="key-hint" style="position:absolute;top:50%;right:6px;transform:translateY(-50%);">SPACE</span>
+            <div id="loc-autocomplete"></div>
+        </div>
+        <button id="loc-go" onclick="flyToLocation()">GO</button>
+    </div>
     <div class="loc-info">
         Location: <span id="loc-name">TOKYO DISNEYSEA</span> | <span id="loc-landmark">LANDMARK</span>
     </div>
