@@ -441,6 +441,24 @@ function init() {
         });
     }
 
+    var domLocPanel = document.getElementById('location-panel');
+    var domLocToggle = document.getElementById('loc-toggle');
+
+    function toggleLocPanel() {
+        var wasCollapsed = domLocPanel.classList.contains('collapsed');
+        domLocPanel.classList.toggle('collapsed');
+        var nowCollapsed = domLocPanel.classList.contains('collapsed');
+        domLocToggle.classList.toggle('collapsed', nowCollapsed);
+        document.body.classList.toggle('loc-expanded', !nowCollapsed);
+        if (wasCollapsed) {
+            domLocToggle.classList.remove('expanding');
+            void domLocToggle.offsetWidth;
+            domLocToggle.classList.add('expanding');
+        }
+    }
+
+    domLocToggle.addEventListener('click', toggleLocPanel);
+
 }
 
 init();
