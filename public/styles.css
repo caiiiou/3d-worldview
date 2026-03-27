@@ -268,3 +268,19 @@ border-bottom: 1px solid rgba(200,215,220,0.06);
 }
 .loc-ac-item:hover, .loc-ac-item.selected { background: rgba(200,215,220,0.12); }
 .loc-ac-item .ac-type { color: #7a8a92; font-size: 7px; margin-left: 8px; }
+/* -- Hide UI button -- */
+#hide-ui-btn {
+position: relative; z-index: 30;
+background: rgba(5,10,18,0.45); border: 2px solid rgba(8,16,24,0.8);
+color: #ffffff; font-family: 'Fira Code', monospace; font-size: 11px;
+letter-spacing: 3px; padding: 6px 22px; cursor: pointer;
+border-radius: 12px;
+transition: background 0.12s ease, border-color 0.12s ease, opacity 0.35s ease, transform 0.1s cubic-bezier(0.34,1.5,0.5,1);
+backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+#top-stack.hud-hidden #hide-ui-btn { background: rgba(5,10,18,0.18); border-color: rgba(255,255,255,0.15); opacity: 0.55; }
+#top-stack.hud-hidden #hide-ui-btn:hover { opacity: 1; background: rgba(5,10,18,0.45); border-color: rgba(220,230,235,0.5); transform: scale(1.09); }
+#hide-ui-btn:hover { border-color: rgba(220,230,235,0.5); background: rgba(5,10,18,0.6); transform: scale(1.09); }
+#top-stack #hud-bottom { transition: opacity 0.32s cubic-bezier(0.22,1,0.36,1), transform 0.42s cubic-bezier(0.34,1.7,0.5,1), filter 0.3s ease, max-height 0.42s cubic-bezier(0.34,1.4,0.5,1), margin 0.42s cubic-bezier(0.34,1.4,0.5,1), padding 0.42s cubic-bezier(0.34,1.4,0.5,1); max-height: 200px; overflow: hidden; }
+#top-stack.hud-hidden #hud-bottom { opacity: 0; transform: translateY(-14px) scale(0.85); filter: blur(8px); max-height: 0; margin: 0; padding: 0; pointer-events: none; }
+

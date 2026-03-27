@@ -245,6 +245,13 @@ function init() {
             case '2': setVisionMode('crt'); break;
             case '3': setVisionMode('nightvision'); break;
             case '4': setVisionMode('flir'); break;
+            case 'Enter': toggleLocPanel(); break;
+            case 'Tab': e.preventDefault(); toggleHUD(); break;
+            case ' ':
+                if (domLocPanel.classList.contains('collapsed')) toggleLocPanel();
+                locInput.focus();
+                e.preventDefault();
+                break;
         }
     });
 
@@ -458,6 +465,32 @@ function init() {
     }
 
     domLocToggle.addEventListener('click', toggleLocPanel);
+
+    var domTopStack = document.getElementById('top-stack');
+    var domLocWrapper = document.getElementById('loc-wrapper');
+    var domCompass = document.getElementById('compass');
+    var domHideBtn = document.getElementById('hide-ui-btn');
+    var domEdgeTexts = document.querySelectorAll('.edge-text-left, .edge-text-right');
+    var domHuds = document.querySelectorAll('.hud');
+
+    var hudVisible = true;
+    function toggleHUD() {
+        hudVisible = !hudVisible;
+        var hide = !hudVisible;
+        for (var i = 0; i < domHuds.length; i++) {
+            if (domHuds[i].id === 'hud-bottom') continue;
+            domHuds[i].classList.toggle('hud-fade', hide);
+        }
+        domTopStack.classList.toggle('hud-hidden', hide);
+        domLocWrapper.classList.toggle('ui-hidden', hide);
+        domCompass.classList.toggle('ui-hidden', hide);
+        for (var j = 0; j < domEdgeTexts.length; j++) {
+            domEdgeTexts[j].classList.toggle('ui-hidden', hide);
+        }
+        domHideBtn.innerHTML = 'HUD ' + (hudVisible ? '\u25BC' : '\u25B2') + '<span class="enter-hint">TAB</span>';
+    }
+
+    domHideBtn.addEventListener('click', toggleHUD);
 
 }
 
