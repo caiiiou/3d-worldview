@@ -25,6 +25,40 @@ function init() {
     viewer.scene.globe.enableLighting = false;
     viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0a0e14');
 
+    // -- Loading progress --
+    document.body.classList.add('loading');
+    var _loadingCleared = false;
+    var _globeReady = false;
+    var _tilesetReady = false;
+    var domLoadBar = document.getElementById('load-bar');
+    var _peakRemaining = 1;
+
+    function clearLoading() {
+        if (_loadingCleared) return;
+        _loadingCleared = true;
+        domLoadBar.style.width = '100%';
+        setTimeout(function() {
+            domLoadBar.classList.add('done');
+            document.body.classList.remove('loading');
+        }, 400);
+    }
+    function checkReady() {
+        if (_globeReady && _tilesetReady) clearLoading();
+    }
+
+    viewer.scene.globe.tileLoadProgressEvent.addEventListener(function(remaining) {
+        if (remaining > _peakRemaining) _peakRemaining = remaining;
+        if (!_loadingCleared) {
+            var globePct = (1 - remaining / _peakRemaining) * 65;
+            var tilesPct = _tilesetReady ? 20 : 0;
+            domLoadBar.style.width = Math.min(95, 10 + globePct + tilesPct) + '%';
+        }
+        if (remaining === 0) { _globeReady = true; checkReady(); }
+    });
+
+    setTimeout(function() { if (_globeReady && !_loadingCleared) clearLoading(); }, 3500);
+    setTimeout(clearLoading, 5000);
+
     // Start at Tokyo (Shibuya area)
     viewer.camera.setView({
         destination: Cesium.Cartesian3.fromDegrees(139.88940, 35.62459, 180),
@@ -37,13 +71,18 @@ function init() {
     }).then(function(t) {
         tileset3d = t;
         viewer.scene.primitives.add(t);
+        _tilesetReady = true;
+        checkReady();
         viewer.scene.requestRender();
     }).catch(function(e) {
         console.log('3D Tiles:', e.message);
+        _tilesetReady = true;
+        checkReady();
     });
 
     // -- Cached DOM refs --
     var domRecTime = document.getElementById('rec-time');
+    var domEdgeTime = document.getElementById('edge-time-l');
 
     // -- Clock (user local timezone) --
     function pad2(n) { return (n < 10 ? '0' : '') + n; }
@@ -55,10 +94,12 @@ function init() {
         return 'LOC';
     })();
     function updateClock() {
+        if (!hudVisible) return;
         var now = new Date();
         var ts = now.getFullYear() + '-' + pad2(now.getMonth()+1) + '-' + pad2(now.getDate()) + ' ' +
                  pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds()) + ' ' + tzAbbr;
         domRecTime.textContent = ts;
+        domEdgeTime.textContent = ts.substring(11);
     }
     updateClock();
     setInterval(updateClock, 1000);
@@ -83,6 +124,7 @@ function init() {
     var _pendingPos = null;
     function updateCoords() {
         _moveRaf = 0;
+        if (!hudVisible) return;
         var pos = _pendingPos;
         if (!pos) return;
         var ray = viewer.camera.getPickRay(pos);

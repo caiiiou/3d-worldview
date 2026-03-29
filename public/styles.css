@@ -284,3 +284,36 @@ backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 #top-stack #hud-bottom { transition: opacity 0.32s cubic-bezier(0.22,1,0.36,1), transform 0.42s cubic-bezier(0.34,1.7,0.5,1), filter 0.3s ease, max-height 0.42s cubic-bezier(0.34,1.4,0.5,1), margin 0.42s cubic-bezier(0.34,1.4,0.5,1), padding 0.42s cubic-bezier(0.34,1.4,0.5,1); max-height: 200px; overflow: hidden; }
 #top-stack.hud-hidden #hud-bottom { opacity: 0; transform: translateY(-14px) scale(0.85); filter: blur(8px); max-height: 0; margin: 0; padding: 0; pointer-events: none; }
 
+/* -- Bottom-right: edge text -- */
+.edge-text-left {
+position: absolute; left: 8px; top: 50%; z-index: 20;
+writing-mode: vertical-lr; transform: rotate(180deg);
+font-size: 9px; color: #7a8a92; letter-spacing: 3px;
+pointer-events: none;
+}
+.edge-text-right {
+position: absolute; right: 8px; top: 50%; z-index: 20;
+writing-mode: vertical-lr;
+font-size: 9px; color: #7a8a92; letter-spacing: 3px;
+pointer-events: none;
+}
+
+
+/* -- Measure overlay -- */
+#measure-info {
+display: none;
+position: absolute; z-index: 25; top: 50%; left: 50%;
+transform: translate(-50%, -50%);
+background: rgba(10,14,20,0.85); border: 1px solid rgba(127,219,202,0.2);
+padding: 10px 16px; font-size: 11px; color: #7fdbca;
+pointer-events: none;
+}
+/* -- Loading bar -- */
+#load-bar {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: #5FEAD4;
+    box-shadow: 0 0 8px rgba(95,234,212,0.6);
+    z-index: 100; width: 10%;
+    transition: width 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.6s ease;
+}
+#load-bar.done { opacity: 0; width: 100% !important; }
