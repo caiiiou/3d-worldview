@@ -225,9 +225,49 @@ function init() {
     crtShader.enabled = false;
     nvShader.enabled = false;
     flirShader.enabled = false;
+
+    // Anime shader: vibrant cel-shading with subtle outlines
+    var animeShader = new Cesium.PostProcessStage({
+        fragmentShader: [
+            'uniform sampler2D colorTexture;',
+            'uniform vec2 colorTextureDimensions;',
+            'in vec2 v_textureCoordinates;',
+            'void main() {',
+            '  vec2 texel = 1.0 / colorTextureDimensions;',
+            '  vec4 c = texture(colorTexture, v_textureCoordinates);',
+            // Brighten first
+            '  vec3 col = c.rgb * 1.3;',
+            // Boost saturation heavily
+            '  float gray = dot(col, vec3(0.299, 0.587, 0.114));',
+            '  col = mix(vec3(gray), col, 2.0);',
+            // Posterize to cel-shading bands
+            '  float levels = 6.0;',
+            '  col = floor(col * levels + 0.5) / levels;',
+            // Subtle Sobel edge detection - only strong edges
+            '  float tl = dot(texture(colorTexture, v_textureCoordinates + vec2(-texel.x, -texel.y)).rgb, vec3(0.299,0.587,0.114));',
+            '  float t  = dot(texture(colorTexture, v_textureCoordinates + vec2(0.0, -texel.y)).rgb, vec3(0.299,0.587,0.114));',
+            '  float tr = dot(texture(colorTexture, v_textureCoordinates + vec2(texel.x, -texel.y)).rgb, vec3(0.299,0.587,0.114));',
+            '  float l  = dot(texture(colorTexture, v_textureCoordinates + vec2(-texel.x, 0.0)).rgb, vec3(0.299,0.587,0.114));',
+            '  float r  = dot(texture(colorTexture, v_textureCoordinates + vec2(texel.x, 0.0)).rgb, vec3(0.299,0.587,0.114));',
+            '  float bl = dot(texture(colorTexture, v_textureCoordinates + vec2(-texel.x, texel.y)).rgb, vec3(0.299,0.587,0.114));',
+            '  float b  = dot(texture(colorTexture, v_textureCoordinates + vec2(0.0, texel.y)).rgb, vec3(0.299,0.587,0.114));',
+            '  float br = dot(texture(colorTexture, v_textureCoordinates + vec2(texel.x, texel.y)).rgb, vec3(0.299,0.587,0.114));',
+            '  float gx = -tl - 2.0*l - bl + tr + 2.0*r + br;',
+            '  float gy = -tl - 2.0*t - tr + bl + 2.0*b + br;',
+            '  float edge = sqrt(gx*gx + gy*gy);',
+            // Only draw outlines on strong edges, and keep them thin
+            '  float outline = smoothstep(0.15, 0.35, edge) * 0.4;',
+            '  vec3 final = col * (1.0 - outline);',
+            '  out_FragColor = vec4(clamp(final, 0.0, 1.0), 1.0);',
+            '}',
+        ].join('\n')
+    });
+
+    animeShader.enabled = false;
     viewer.scene.postProcessStages.add(crtShader);
     viewer.scene.postProcessStages.add(nvShader);
     viewer.scene.postProcessStages.add(flirShader);
+    viewer.scene.postProcessStages.add(animeShader);
 
     var domModeLabel = document.getElementById('mode-label');
     var domActiveStyle = document.getElementById('active-style-name');
@@ -237,6 +277,7 @@ function init() {
         crt: crtShader,
         nightvision: nvShader,
         flir: flirShader,
+        anime: animeShader,
     };
 
     var modeNames = {
@@ -244,6 +285,7 @@ function init() {
         crt: 'CRT',
         nightvision: 'NIGHT VISION',
         flir: 'FLIR',
+        anime: 'ANIME',
     };
 
     var _currentMode = 'normal';
@@ -287,6 +329,7 @@ function init() {
             case '2': setVisionMode('crt'); break;
             case '3': setVisionMode('nightvision'); break;
             case '4': setVisionMode('flir'); break;
+            case '5': setVisionMode('anime'); break;
             case 'Enter': toggleLocPanel(); break;
             case 'Tab': e.preventDefault(); toggleHUD(); break;
             case ' ':

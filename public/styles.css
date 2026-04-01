@@ -317,3 +317,17 @@ pointer-events: none;
     transition: width 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.6s ease;
 }
 #load-bar.done { opacity: 0; width: 100% !important; }
+/* Anime -- vibrant saturated cel-shading */
+.mode-anime { --accent: #ff69b4; --bg: #0a0610; background: var(--bg); }
+.mode-anime .hud,
+.mode-anime .style-btn, .mode-anime .brand, .mode-anime .mode-label,
+.mode-anime .coord-value,
+.mode-anime #loc-input, .mode-anime #loc-go { color: var(--accent); }
+.mode-anime .style-btn,
+.mode-anime #loc-input, .mode-anime #loc-go { border-color: rgba(255,105,180,0.2); }
+.mode-anime .classification { color: #ff69b4 !important; border-color: #ff69b4 !important; }
+.mode-anime .hud-label, .mode-anime .subtitle, .mode-anime .summary-block,
+.mode-anime .ops-id, .mode-anime .coord-dms { color: #804070; }
+.mode-anime #vignette {
+background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 35%, rgba(10,6,16,0.3) 55%, rgba(10,6,16,0.8) 75%, var(--bg) 100%);
+}
