@@ -437,11 +437,15 @@ function init() {
     function flyToLocation(name) {
         var q = name || document.getElementById('loc-input').value.toLowerCase().trim();
         if (!q) return;
+
         var match = locations[q];
         if (match) {
             flyToTarget(match[0], match[1], match[2], q, match[3], match[5]);
+            locInput.value = '';
+            locInput.blur();
             return;
         }
+
         var keys = Object.keys(locations);
         for (var i = 0; i < keys.length; i++) {
             if (keys[i].indexOf(q) !== -1) {
@@ -449,6 +453,61 @@ function init() {
                 return;
             }
         }
+
+        // Geocode via Nominatim (OpenStreetMap)
+        document.getElementById('loc-name').textContent = 'SEARCHING...';
+        document.getElementById('loc-landmark').textContent = '--';
+        fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q=' + encodeURIComponent(q))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data || data.length === 0) {
+                    document.getElementById('loc-name').textContent = 'NOT FOUND';
+                    document.getElementById('loc-landmark').textContent = '--';
+                    return;
+                }
+                var priority = ['tourism', 'historic', 'building', 'amenity', 'shop', 'leisure', 'highway', 'place', 'boundary'];
+                var hit = data[0];
+                for (var p = 0; p < priority.length; p++) {
+                    for (var d = 0; d < data.length; d++) {
+                        if (data[d].class === priority[p]) { hit = data[d]; p = priority.length; break; }
+                    }
+                }
+                var lon = parseFloat(hit.lon);
+                var lat = parseFloat(hit.lat);
+                var label = hit.display_name.split(',')[0];
+                var range = 1200;
+                var type = 'city';
+
+                if (hit.boundingbox) {
+                    var dlat = Math.abs(parseFloat(hit.boundingbox[1]) - parseFloat(hit.boundingbox[0]));
+                    var dlon = Math.abs(parseFloat(hit.boundingbox[3]) - parseFloat(hit.boundingbox[2]));
+                    var span = Math.max(dlat, dlon);
+                    var spanM = span * 111000;
+                    range = Math.max(200, Math.min(spanM * 2.5, 500000));
+                }
+
+                if (hit.class === 'tourism' || hit.class === 'historic' || hit.class === 'building' || hit.class === 'leisure') {
+                    type = 'landmark'; range = Math.min(range, 1000);
+                } else if (hit.class === 'place' && (hit.type === 'house' || hit.type === 'address')) {
+                    type = 'landmark'; range = Math.min(range, 400);
+                } else if (hit.class === 'amenity' || hit.class === 'shop') {
+                    type = 'landmark'; range = Math.min(range, 600);
+                } else if (hit.class === 'highway') {
+                    type = 'landmark'; range = Math.min(range, 500);
+                } else if (hit.type === 'country') {
+                    range = Math.max(range, 500000);
+                } else if (hit.type === 'state' || hit.type === 'province') {
+                    range = Math.max(range, 100000);
+                }
+
+                locInput.value = '';
+                locInput.blur();
+                flyToTarget(lon, lat, range, label, type);
+            })
+            .catch(function() {
+                document.getElementById('loc-name').textContent = 'ERROR';
+                document.getElementById('loc-landmark').textContent = '--';
+            });
     }
     (window as any).flyToLocation = flyToLocation;
 
