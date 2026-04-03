@@ -10,19 +10,56 @@ function init() {
         homeButton: false, sceneModePicker: false,
         navigationHelpButton: false, fullscreenButton: false,
         infoBox: false, selectionIndicator: false,
+        requestRenderMode: true,
+        shadows: false,
+        shouldAnimate: false,
+        msaaSamples: 1,
+        scene3DOnly: true,
+        orderIndependentTranslucency: false,
+        contextOptions: { webgl: { powerPreference: 'high-performance' } },
     });
     viewer.scene.morphTo3D(0);
+    viewer.scene.maximumRenderTimeChange = Infinity;
 
+    // Performance — detect mobile for tuning
+    var _isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+    var _deviceMemory = typeof (navigator as any).deviceMemory === 'number' ? (navigator as any).deviceMemory : (_isMobile ? 3 : 8);
+    var _hardwareConcurrency = typeof navigator.hardwareConcurrency === 'number' ? navigator.hardwareConcurrency : 8;
+    var _isConstrainedDevice = _isMobile || _deviceMemory <= 4 || _hardwareConcurrency <= 4;
+    var _allowAggressivePreload = !_isConstrainedDevice;
+    var _globeTileCacheSize = _isMobile ? 60 : (_isConstrainedDevice ? 512 : 1200);
+    var _globeMaximumSSE = _isMobile ? 8 : (_isConstrainedDevice ? 3 : 2);
+    var _globeLoadingDescendantLimit = _isMobile ? 2 : (_isConstrainedDevice ? 4 : 8);
+    var _tilesetMaximumMemoryUsage = _isMobile ? 96 : (_isConstrainedDevice ? 512 : 1024);
+    var _tilesetMaximumSSE = _isMobile ? 32 : (_isConstrainedDevice ? 20 : 16);
+    var _tilesetDynamicSSEDensity = _isMobile ? 0.005 : (_isConstrainedDevice ? 0.0035 : 0.00278);
+    var _tilesetDynamicSSEFactor = _isMobile ? 8.0 : (_isConstrainedDevice ? 5.5 : 4.0);
+    var _tilesetFoveatedConeSize = _isMobile ? 0.08 : (_isConstrainedDevice ? 0.14 : 0.18);
+    var _tilesetFoveatedRelaxation = _isMobile ? 1.5 : (_isConstrainedDevice ? 1.0 : 0.7);
+    var _tilesetStartupFoveatedConeSize = _isMobile ? 0.06 : 0.04;
+    var _schedulerMaximumRequests = _isMobile ? 10 : (_isConstrainedDevice ? 48 : 96);
+    var _schedulerMaximumRequestsPerServer = _isMobile ? 4 : (_isConstrainedDevice ? 10 : 16);
+
+
+    // Performance — globe terrain
+    viewer.scene.globe.tileCacheSize = _globeTileCacheSize;
     viewer.scene.fog.enabled = false;
     viewer.scene.skyAtmosphere.show = false;
     viewer.scene.globe.showGroundAtmosphere = false;
+    viewer.scene.globe.maximumScreenSpaceError = _globeMaximumSSE;
     viewer.scene.highDynamicRange = false;
     viewer.scene.fxaa = false;
     viewer.scene.globe.depthTestAgainstTerrain = true;
+    viewer.scene.globe.preloadSiblings = _allowAggressivePreload;
+    viewer.scene.globe.preloadAncestors = _allowAggressivePreload;
+    viewer.scene.globe.loadingDescendantLimit = _globeLoadingDescendantLimit;
+    viewer.scene.logarithmicDepthBuffer = false;
     viewer.scene.skyBox.show = false;
     viewer.scene.sun.show = false;
     viewer.scene.moon.show = false;
     viewer.scene.globe.enableLighting = false;
+    viewer.scene.postProcessStages.ambientOcclusion.enabled = false;
+    viewer.scene.debugShowFramesPerSecond = false;
     viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0a0e14');
 
     // -- Loading progress --
@@ -68,17 +105,45 @@ function init() {
     // 3D Tiles
     var tileset3d = null;
     Cesium.Cesium3DTileset.fromIonAssetId(2275207, {
+        skipLevelOfDetail: false,
+        loadSiblings: _allowAggressivePreload,
+        maximumMemoryUsage: _tilesetMaximumMemoryUsage,
+        dynamicScreenSpaceError: true,
+        dynamicScreenSpaceErrorDensity: _tilesetDynamicSSEDensity,
+        dynamicScreenSpaceErrorFactor: _tilesetDynamicSSEFactor,
+        dynamicScreenSpaceErrorHeightFalloff: 0.25,
+        preferLeaves: false,
+        cullWithChildrenBounds: true,
+        foveatedScreenSpaceError: true,
+        foveatedConeSize: _tilesetFoveatedConeSize,
+        foveatedMinimumScreenSpaceErrorRelaxation: _tilesetFoveatedRelaxation,
+        maximumScreenSpaceError: _tilesetMaximumSSE,
     }).then(function(t) {
         tileset3d = t;
+        t.preloadFlightDestinations = _allowAggressivePreload;
+        t.preloadWhenHidden = false;
+        t.cullRequestsWhileMoving = true;
+        t.cullRequestsWhileMovingMultiplier = _isMobile ? 120.0 : 60.0;
+        // Tight foveated cone on first load — pour all bandwidth into the
+        // centre of the Tokyo view, relax once initial tiles arrive.
+        t.foveatedConeSize = _tilesetStartupFoveatedConeSize;
+        t.foveatedMinimumScreenSpaceErrorRelaxation = _tilesetFoveatedRelaxation;
         viewer.scene.primitives.add(t);
         _tilesetReady = true;
         checkReady();
         viewer.scene.requestRender();
+        // After initial tiles settle, relax foveation to normal
+        setTimeout(function() {
+            t.foveatedConeSize = _tilesetFoveatedConeSize;
+            t.foveatedMinimumScreenSpaceErrorRelaxation = _tilesetFoveatedRelaxation;
+            viewer.scene.requestRender();
+        }, _isMobile ? 3000 : 5000);
     }).catch(function(e) {
         console.log('3D Tiles:', e.message);
         _tilesetReady = true;
         checkReady();
     });
+
 
     // -- Cached DOM refs --
     var domRecTime = document.getElementById('rec-time');
@@ -580,6 +645,10 @@ function init() {
     locInput.addEventListener('blur', function() {
         setTimeout(hideAutocomplete, 150);
     });
+
+    // Crank up concurrent requests for the fastest possible loads.
+    Cesium.RequestScheduler.maximumRequests = _schedulerMaximumRequests;
+    Cesium.RequestScheduler.maximumRequestsPerServer = _schedulerMaximumRequestsPerServer;
 
     function hideAutocomplete() {
         acDropdown.style.display = 'none';
