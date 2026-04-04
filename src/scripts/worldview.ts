@@ -1,6 +1,57 @@
 declare const Cesium: any;
 
-function init() {
+
+function cleanupLegacyOfflineState() {
+        if (!('serviceWorker' in navigator) && !('caches' in window)) {
+            return Promise.resolve(false);
+        }
+
+        var reloadKey = 'worldview-cache-cleanup-v1';
+        if (sessionStorage.getItem(reloadKey) === 'done') {
+            return Promise.resolve(false);
+        }
+
+        return Promise.all([
+            ('serviceWorker' in navigator)
+                ? navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    return Promise.all(registrations.map(function(registration) {
+                        return registration.unregister();
+                    })).then(function(results) {
+                        return results.some(Boolean);
+                    });
+                }).catch(function() {
+                    return false;
+                })
+                : Promise.resolve(false),
+            ('caches' in window)
+                ? caches.keys().then(function(names) {
+                    var staleNames = names.filter(function(name) {
+                        return name.indexOf('worldview') !== -1;
+                    });
+                    return Promise.all(staleNames.map(function(name) {
+                        return caches.delete(name);
+                    })).then(function(results) {
+                        return results.some(Boolean);
+                    });
+                }).catch(function() {
+                    return false;
+                })
+                : Promise.resolve(false),
+        ]).then(function(results) {
+            var changed = results[0] || results[1];
+            if (changed) {
+                sessionStorage.setItem(reloadKey, 'done');
+            }
+            return changed;
+        });
+    }
+
+    cleanupLegacyOfflineState().then(function(changed) {
+        if (changed) {
+            window.location.reload();
+            return;
+        }
+
     Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIxZWY2M2E3Zi0wZTcyLTQ5OWItOTBhYi0yOTIwM2FhMzhhYzQiLCJpZCI6NDEzNDg4LCJpYXQiOjE3NzUyNTA0MDJ9.u0SDRIgFDNncldyXGrHcfe1MeUngVQGtINu6eFNHVZ4';
 
     var viewer = new Cesium.Viewer('cesiumContainer', {
@@ -705,6 +756,8 @@ function init() {
 
     domHideBtn.addEventListener('click', toggleHUD);
 
-}
 
-init();
+    }).catch(function(err) {
+        console.error('Viewer startup failed:', err);
+    });
+
