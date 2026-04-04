@@ -331,3 +331,53 @@ pointer-events: none;
 .mode-anime #vignette {
 background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 35%, rgba(10,6,16,0.3) 55%, rgba(10,6,16,0.8) 75%, var(--bg) 100%);
 }
+/* -- Mobile / touch layout -- */
+@media (max-width: 900px) {
+    /* Drop top-corner HUD blocks and bottom-left coordinates on mobile. */
+    #hud-topleft, #hud-topright, #compass, #hud-bottomleft { display: none !important; }
+    /* Shrink style-presets + HUD button stack a touch so it fits phones */
+    #top-stack { top: 6px; gap: 4px; }
+    /* Tighten max-height on mobile so the collapse transition maps to the
+       panel's real height instead of wasting most of the animation above it,
+       which made the HUD button slide-up feel snappy. */
+    #top-stack #hud-bottom { max-height: 56px; padding: 6px 8px; }
+    .style-btn { font-size: 8px; padding: 4px 6px; letter-spacing: 1px; }
+    #hide-ui-btn { font-size: 8px; padding: 4px 14px; letter-spacing: 2px; }
+    /* Shrink loc panel a bit */
+    #location-panel { padding: 8px 10px; }
+    .loc-col { min-width: 0; }
+    .loc-columns { gap: 12px; }
+    .loc-tag { font-size: 8px; padding: 4px 6px; }
+    #loc-input { font-size: 11px; }
+    .loc-info, .loc-info span, .loc-info a { font-size: 8px !important; }
+}
+
+/* Portrait-only: hide the last 3 landmarks and last 3 cities so the
+   panel fits narrow screens (alphabetical order, last 3 of each). */
+@media (max-width: 900px) and (orientation: portrait) {
+    #loc-landmarks .loc-tags .loc-tag:nth-child(n+7),
+    #loc-cities .loc-tags .loc-tag:nth-child(n+7) { display: none; }
+    .loc-columns { flex-direction: column; gap: 6px; }
+    .loc-col { text-align: center; }
+
+    /* Stretch the style-presets bar across the viewport width and keep
+       all 5 buttons on a single row. Only wrap on very small screens. */
+    #top-stack { left: 8px; right: 8px; width: auto; transform: none; }
+    #hud-bottom { width: 100%; padding: 6px 4px; }
+    #style-presets { flex-wrap: nowrap; gap: 4px; width: 100%; }
+    .style-btn {
+        flex: 1 1 0;
+        min-width: 0;
+        font-size: 8px;
+        padding: 5px 2px;
+        letter-spacing: 1px;
+        white-space: nowrap;
+    }
+    .style-btn.active { padding: 5px 2px; }
+}
+
+/* Very small phones: allow presets to wrap so labels stay readable. */
+@media (max-width: 360px) and (orientation: portrait) {
+    #style-presets { flex-wrap: wrap; }
+    .style-btn { flex: 0 1 auto; padding: 4px 6px; }
+}
