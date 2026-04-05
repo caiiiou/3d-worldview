@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "3d-worldview",
+  "compatibility_date": "2026-04-07",
+  "workers_dev": false,
+  "preview_urls": false,
+  "send_metrics": false,
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./dist"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}

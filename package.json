@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "deploy": "npm run build && wrangler deploy"
   },
   "devDependencies": {
     "astro": "^6.0.3",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "wrangler": "^4.40.0"
   }
 }
