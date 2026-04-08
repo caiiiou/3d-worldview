@@ -113,6 +113,37 @@ function cleanupLegacyOfflineState() {
     viewer.scene.debugShowFramesPerSecond = false;
     viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0a0e14');
 
+    // -- Camera controller — stable behavior near terrain --
+    // Cesium's default orbit controller picks its pivot point from whatever
+    // the mouse was over at drag-start. If that pivot lands on a 3D-tile
+    // building or the ground at close range, subsequent rotates fling the
+    // camera because the pivot's depth jumps frame-to-frame. Clamp the
+    // minimum distance, widen the collision envelope, and damp inertia so
+    // rotations near the surface stay predictable.
+    var ssc = viewer.scene.screenSpaceCameraController;
+    ssc.enableCollisionDetection = true;
+    ssc.minimumZoomDistance = 15;               // keep camera above building rooftops
+    ssc.maximumZoomDistance = 20000000;
+    ssc.minimumCollisionTerrainHeight = 80000;  // terrain collision active well above cities
+    ssc.enableLook = false;                     // disable free-look (right-drag) which flips near ground
+    ssc.inertiaSpin = 0.5;                      // default 0.9 — less fling
+    ssc.inertiaTranslate = 0.5;                 // default 0.9
+    ssc.inertiaZoom = 0.5;                      // default 0.8
+    ssc.bounceAnimationTime = 0;                // no rubber-band snap-back
+
+    // Prevent the camera from going below the ellipsoid surface (ocean floor
+    // trap) or clipping through terrain. Clamp height every frame.
+    var MIN_CAM_HEIGHT = 10; // metres above ellipsoid
+    viewer.scene.preRender.addEventListener(function() {
+        var carto = viewer.camera.positionCartographic;
+        if (carto.height < MIN_CAM_HEIGHT) {
+            viewer.camera.positionCartographic = new Cesium.Cartographic(
+                carto.longitude, carto.latitude, MIN_CAM_HEIGHT
+            );
+        }
+    });
+
+
     // -- Loading progress --
     document.body.classList.add('loading');
     var _loadingCleared = false;
@@ -270,12 +301,27 @@ function cleanupLegacyOfflineState() {
 
     // -- Compass --
     var _lastHeading = -1;
+    var _lastTilesetVisible = true;
     viewer.camera.changed.addEventListener(function() {
         var h = Cesium.Math.toDegrees(viewer.camera.heading);
         if (Math.abs(h - _lastHeading) >= 0.1) {
             _lastHeading = h;
             domNeedle.setAttribute('transform', 'rotate(' + h + ' 25 25)');
         }
+        var alt = viewer.camera.positionCartographic.height;
+        var shouldShow = alt < TILESET_SHOW_MAX_ALT;
+        if (tileset3d && shouldShow !== _lastTilesetVisible) {
+            _lastTilesetVisible = shouldShow;
+            tileset3d.show = shouldShow;
+        }
+    });
+    // Hide the photorealistic 3D tileset at space-view altitudes. Its
+    // root-level tiles cover only parts of the globe and show up as dark
+    // jagged polygons over the ocean when viewed from far out.
+    var TILESET_SHOW_MAX_ALT = 1500000; // 1500 km
+    viewer.camera.moveEnd.addEventListener(function() {
+        var c = viewer.camera.positionCartographic;
+        domSummary.textContent = 'OBSERVING ' + Cesium.Math.toDegrees(c.latitude).toFixed(2) + ', ' + Cesium.Math.toDegrees(c.longitude).toFixed(2);
     });
     viewer.camera.moveEnd.addEventListener(function() {
         var c = viewer.camera.positionCartographic;
@@ -530,6 +576,11 @@ function cleanupLegacyOfflineState() {
         buildGroup(cityEl, 'city');
     })();
 
+
+    var _baseSSE = viewer.scene.globe.maximumScreenSpaceError;
+    var _baseTilesetSSE = _tilesetMaximumSSE;
+    var _basePreloadAncestors = viewer.scene.globe.preloadAncestors;
+    var _basePreloadSiblings = viewer.scene.globe.preloadSiblings;
     function flyToTarget(lon, lat, range, label, type, headingDeg) {
         var isLandmark = type === 'landmark';
         var targetAlt = isLandmark ? range * 0.08 : 0;
@@ -537,15 +588,61 @@ function cleanupLegacyOfflineState() {
         var heading = Cesium.Math.toRadians(headingDeg != null ? headingDeg : 30);
         var pitch = Cesium.Math.toRadians(isLandmark ? -22 : -25);
         var sphereRadius = isLandmark ? Math.max(range * 0.05, 20) : 10;
+        // Freeze intermediate tile loads: crank SSE way up so Cesium re-uses
+        // whatever tiles are already in memory for the en-route frames and
+        // spends all bandwidth on the flight destination
+        // (preloadFlightDestinations is enabled on the tileset, so the
+        // destination begins streaming the instant this flight starts).
+        var globe = viewer.scene.globe;
+        globe.maximumScreenSpaceError = 9999;
+        globe.preloadAncestors = false;
+        globe.preloadSiblings = false;
+        if (tileset3d) {
+            // Crank tileset SSE way up so it drops all intermediate-frame tile
+            // requests and only streams the destination (preloadFlightDestinations
+            // is enabled). Unlike show=false this keeps the tile loader active
+            // so destination tiles actually arrive during the flight.
+            tileset3d.maximumScreenSpaceError = 9999;
+        }
+        var restore = function() {
+            globe.maximumScreenSpaceError = _baseSSE;
+            globe.preloadAncestors = _basePreloadAncestors;
+            globe.preloadSiblings = _basePreloadSiblings;
+            if (tileset3d) {
+                tileset3d.maximumScreenSpaceError = _baseTilesetSSE;
+                if (_isMobile && typeof tileset3d.trimLoadedTiles === 'function') {
+                    tileset3d.trimLoadedTiles();
+                }
+            }
+        };
+        // Cap the flight's intermediate altitude so short hops skim across
+        // the surface instead of shooting up to orbital blackness. Scale the
+        // cap with the great-circle distance between source and target so
+        // long-haul flights still clear terrain.
+        var fromC = viewer.camera.positionCartographic;
+        var toCarto = Cesium.Cartographic.fromDegrees(lon, lat);
+        var distMeters = new Cesium.EllipsoidGeodesic(fromC, toCarto).surfaceDistance;
+        var maxHeight;
+        if (distMeters < 20000)        maxHeight = Math.max(range * 1.5, 2500);   // same city
+        else if (distMeters < 200000)  maxHeight = 15000;                         // regional
+        else if (distMeters < 2000000) maxHeight = 120000;                        // cross-country
+        else                           maxHeight = 600000;                        // intercontinental
+        // Give longer trips a bit more flight time so the skim feels paced.
+        var duration = Math.min(4.5, Math.max(1.8, 1.2 + distMeters / 600000));
         viewer.camera.flyToBoundingSphere(
             new Cesium.BoundingSphere(target, sphereRadius),
             {
                 offset: new Cesium.HeadingPitchRange(heading, pitch, range),
-                duration: 2.5,
+                duration: duration,
+                maximumHeight: maxHeight,
                 easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
+                complete: restore,
+                cancel: restore,
             }
         );
         document.getElementById('loc-name').textContent = label.toUpperCase();
+        var titleLabel = label.replace(/\w\S*/g, function(w) { return w.charAt(0).toUpperCase() + w.substr(1).toLowerCase(); });
+        document.title = titleLabel + ' - World View';
         document.getElementById('loc-landmark').textContent = type === 'landmark' ? 'LANDMARK' : 'CITY';
         document.getElementById('summary-text').textContent = 'TARGET: ' + label.toUpperCase();
     }
