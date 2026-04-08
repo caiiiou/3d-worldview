@@ -8,9 +8,6 @@
   "observability": {
     "enabled": false
   },
-  "placement": {
-    "mode": "smart"
-  },
   "assets": {
     "directory": "./dist"
   },
