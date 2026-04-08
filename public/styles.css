@@ -5,6 +5,9 @@ background: #0a0e14;
 font-family: 'Fira Code', monospace;
 color: #e4ebee;
 overflow: hidden;
+cursor: crosshair;
+-webkit-text-size-adjust: 100%;
+text-size-adjust: 100%;
 }
 
 /* -- Globe -- */
@@ -35,12 +38,87 @@ pointer-events: none; z-index: 10;
 background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 35%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0.85) 75%, #0a0e14 100%);
 }
 
+/* -- Background grid -- */
+body::before {
+content: '';
+position: fixed; inset: 0;
+background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(127,219,202,0.015) 40px, rgba(127,219,202,0.015) 41px),
+    repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(127,219,202,0.015) 40px, rgba(127,219,202,0.015) 41px);
+pointer-events: none; z-index: 11;
+}
+
+/* -- Edge topo lines -- */
+body::after {
+content: '';
+position: fixed; inset: 0;
+background-image:
+    radial-gradient(ellipse 85% 85% at 50% 50%, transparent 75%, rgba(127,219,202,0.03) 85.1%, transparent 85.3%),
+    radial-gradient(ellipse 85% 85% at 50% 50%, transparent 77%, rgba(127,219,202,0.025) 87.1%, transparent 87.3%),
+    radial-gradient(ellipse 85% 85% at 50% 50%, transparent 79%, rgba(127,219,202,0.02) 89.1%, transparent 89.3%);
+pointer-events: none; z-index: 11;
+}
+
 /* -- HUD base -- */
-.hud { position: absolute; z-index: 20; pointer-events: none; background: rgba(2,4,8,0.82); padding: 10px 14px; border-radius: 16px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.hud { position: absolute; z-index: 20; pointer-events: none; background: rgba(2,4,8,0.82); padding: 10px 14px; border-radius: 16px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); contain: layout style paint;
+will-change: transform, opacity;
+transform: translateZ(0);
+transition:
+    opacity 0.32s cubic-bezier(0.22,1,0.36,1),
+    transform 0.42s cubic-bezier(0.34,1.7,0.5,1),
+    filter 0.3s ease;
+}
+/* While Cesium is saturating the main thread during initial load, drop
+   filter blurs from HUD transitions (filter isn't compositor-only and
+   stutters under contention). Keep max-height animating on #hud-bottom
+   so the HUD button slides into place instead of snapping. */
+body.loading .hud,
+body.loading #loc-wrapper,
+body.loading #compass,
+body.loading .edge-text-left,
+body.loading .edge-text-right {
+    transition:
+        opacity 0.28s cubic-bezier(0.22,1,0.36,1),
+        transform 0.36s cubic-bezier(0.34,1.4,0.5,1) !important;
+}
+body.loading #top-stack #hud-bottom {
+    transition:
+        opacity 0.28s cubic-bezier(0.22,1,0.36,1),
+        transform 0.36s cubic-bezier(0.34,1.4,0.5,1),
+        max-height 0.42s cubic-bezier(0.34,1.4,0.5,1),
+        margin 0.42s cubic-bezier(0.34,1.4,0.5,1),
+        padding 0.42s cubic-bezier(0.34,1.4,0.5,1) !important;
+}
+body.loading .hud.hud-fade,
+body.loading .ui-hidden,
+body.loading #top-stack.hud-hidden #hud-bottom {
+    filter: none !important;
+}
+.hud.hud-fade { opacity: 0; transform: translateY(-18px) scale(0.85); filter: blur(8px); pointer-events: none !important; }
+#hud-topright.hud-fade { transform: translate(18px, -14px) scale(0.85); }
+#hud-bottomleft.hud-fade { transform: translate(-14px, 18px) scale(0.85); }
+#compass, .edge-text-left, .edge-text-right {
+will-change: transform, opacity;
+}
+#loc-wrapper, #compass, .edge-text-left, .edge-text-right {
+transition:
+    opacity 0.32s cubic-bezier(0.22,1,0.36,1),
+    transform 0.42s cubic-bezier(0.34,1.7,0.5,1),
+    filter 0.3s ease;
+}
+.ui-hidden { opacity: 0 !important; filter: blur(8px); pointer-events: none !important; }
+#reticle.ui-hidden { transform: scale(1.15); }
+#compass.ui-hidden { transform: translateX(-50%) translateY(-18px) scale(0.6); }
+#loc-wrapper.ui-hidden { transform: translateX(-50%) translateY(24px) scale(0.85); }
+.edge-text-left.ui-hidden { transform: translateX(-18px) rotate(180deg); }
+.edge-text-right.ui-hidden { transform: translateX(18px); }
+.hud-interactive { pointer-events: auto; }
+.hud-label { font-size: 10px; color: #7a8a92; letter-spacing: 2px; text-transform: uppercase; }
 
 /* -- Top Left -- */
 #hud-topleft { top: 16px; left: 20px; }
 .brand { font-size: 26px; letter-spacing: 6px; color: #ffffff; }
+.subtitle { font-size: 9px; color: #7a8a92; letter-spacing: 4px; margin-top: 1px; }
 .classification {
 margin-top: 12px; font-size: 11px; color: #e06c75;
 letter-spacing: 2px; border-left: 2px solid #e06c75; padding-left: 8px;
@@ -72,7 +150,7 @@ top: 10px; left: 50%; transform: translateX(-50%);
 pointer-events: none;
 }
 #compass svg { width: 50px; height: 50px; }
-.hud-label { font-size: 10px; color: #7a8a92; letter-spacing: 2px; text-transform: uppercase; }
+
 /* -- Top center stack: style presets + hud button -- */
 #top-stack { position: absolute; z-index: 20; top: 10px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
 #top-stack > * { pointer-events: auto; }
@@ -109,58 +187,22 @@ padding: 1px 4px; line-height: 1; letter-spacing: 0;
 }
 .enter-hint { font-size: 8px; color: #c0ccd2; letter-spacing: 1px; margin-left: 5px; }
 
-/* ======================================
-   VISION MODES
-   ====================================== */
+/* -- Hide UI button -- */
+#hide-ui-btn {
+position: relative; z-index: 30;
+background: rgba(5,10,18,0.45); border: 2px solid rgba(8,16,24,0.8);
+color: #ffffff; font-family: 'Fira Code', monospace; font-size: 11px;
+letter-spacing: 3px; padding: 6px 22px; cursor: pointer;
+border-radius: 12px;
+transition: background 0.12s ease, border-color 0.12s ease, opacity 0.35s ease, transform 0.1s cubic-bezier(0.34,1.5,0.5,1);
+backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+#top-stack.hud-hidden #hide-ui-btn { background: rgba(5,10,18,0.18); border-color: rgba(255,255,255,0.15); opacity: 0.55; }
+#top-stack.hud-hidden #hide-ui-btn:hover { opacity: 1; background: rgba(5,10,18,0.45); border-color: rgba(220,230,235,0.5); transform: scale(1.09); }
+#hide-ui-btn:hover { border-color: rgba(220,230,235,0.5); background: rgba(5,10,18,0.6); transform: scale(1.09); }
+#top-stack #hud-bottom { transition: opacity 0.32s cubic-bezier(0.22,1,0.36,1), transform 0.42s cubic-bezier(0.34,1.7,0.5,1), filter 0.3s ease, max-height 0.42s cubic-bezier(0.34,1.4,0.5,1), margin 0.42s cubic-bezier(0.34,1.4,0.5,1), padding 0.42s cubic-bezier(0.34,1.4,0.5,1); max-height: 200px; overflow: hidden; }
+#top-stack.hud-hidden #hud-bottom { opacity: 0; transform: translateY(-14px) scale(0.85); filter: blur(8px); max-height: 0; margin: 0; padding: 0; pointer-events: none; }
 
-/* CRT -- warm amber phosphor look */
-.mode-crt { --accent: #ffb347; --accent-dim: #805a24; --accent-bg: rgba(255,179,71,0.04); --accent-border: rgba(255,179,71,0.15); --bg: #0a0704; }
-.mode-crt { background: var(--bg); }
-.mode-crt .hud, .mode-crt .style-btn,
-.mode-crt .brand, .mode-crt .mode-label, .mode-crt .coord-value,
-.mode-crt #loc-input, .mode-crt #loc-go { color: var(--accent); }
-.mode-crt .style-btn,
-.mode-crt #loc-input, .mode-crt #loc-go { border-color: var(--accent-border); }
-.mode-crt .classification { color: #ff6633 !important; border-color: #ff6633 !important; }
-.mode-crt .hud-label, .mode-crt .subtitle, .mode-crt .summary-block,
-.mode-crt .ops-id, .mode-crt .coord-dms { color: #805a24; }
-.mode-crt #vignette {
-background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 30%, rgba(10,7,0,0.4) 55%, rgba(10,7,4,0.9) 75%, var(--bg) 100%);
-}
-
-/* Night Vision -- color grading handled by GPU shader */
-.mode-nightvision { --accent: #00ff41; --bg: #010d01; background: var(--bg); }
-.mode-nightvision .hud,
-.mode-nightvision .style-btn, .mode-nightvision .brand, .mode-nightvision .mode-label,
-.mode-nightvision .coord-value,
-.mode-nightvision #loc-input, .mode-nightvision #loc-go { color: var(--accent); }
-.mode-nightvision .style-btn,
-.mode-nightvision #loc-input, .mode-nightvision #loc-go { border-color: rgba(0,255,65,0.2); }
-.mode-nightvision #vignette {
-background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 30%, rgba(0,20,0,0.4) 55%, rgba(0,10,0,0.9) 75%, #010d01 100%);
-}
-.mode-nightvision body::before {
-background-image:
-    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,0,0.03) 2px, rgba(0,255,0,0.03) 3px);
-}
-.mode-nightvision .classification { color: #00ff41 !important; border-color: #00ff41 !important; }
-.mode-nightvision .hud-label, .mode-nightvision .subtitle, .mode-nightvision .summary-block,
-.mode-nightvision .ops-id, .mode-nightvision .coord-dms { color: #1a6630; }
-
-/* FLIR -- color grading handled by GPU shader */
-.mode-flir { --accent: #ff6b35; --bg: #0a0406; background: var(--bg); }
-.mode-flir .hud,
-.mode-flir .style-btn, .mode-flir .brand, .mode-flir .mode-label,
-.mode-flir .coord-value,
-.mode-flir #loc-input, .mode-flir #loc-go { color: var(--accent); }
-.mode-flir .style-btn,
-.mode-flir #loc-input, .mode-flir #loc-go { border-color: rgba(255,107,53,0.15); }
-.mode-flir .classification { color: #ff3333 !important; border-color: #ff3333 !important; }
-.mode-flir .hud-label, .mode-flir .subtitle, .mode-flir .summary-block,
-.mode-flir .ops-id, .mode-flir .edge-text-left, .mode-flir .edge-text-right { color: #663320; }
-.mode-flir #vignette {
-background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 30%, rgba(10,4,0,0.4) 55%, rgba(10,4,6,0.9) 75%, var(--bg) 100%);
-}
 /* -- Location search -- */
 #loc-wrapper {
 position: absolute; z-index: 25; bottom: 10px; left: 50%;
@@ -254,7 +296,6 @@ cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease, color
 .loc-tag.landmark { border-left: 2px solid #e06c75; }
 .loc-tag.city { border-left: 2px solid #4fc3f7; }
 /* -- Autocomplete dropdown -- */
-/* -- Autocomplete dropdown -- */
 #loc-autocomplete {
 display: none; position: absolute; bottom: 100%; left: 0;
 width: 300px; max-height: 180px; overflow-y: auto;
@@ -268,21 +309,6 @@ border-bottom: 1px solid rgba(200,215,220,0.06);
 }
 .loc-ac-item:hover, .loc-ac-item.selected { background: rgba(200,215,220,0.12); }
 .loc-ac-item .ac-type { color: #7a8a92; font-size: 7px; margin-left: 8px; }
-/* -- Hide UI button -- */
-#hide-ui-btn {
-position: relative; z-index: 30;
-background: rgba(5,10,18,0.45); border: 2px solid rgba(8,16,24,0.8);
-color: #ffffff; font-family: 'Fira Code', monospace; font-size: 11px;
-letter-spacing: 3px; padding: 6px 22px; cursor: pointer;
-border-radius: 12px;
-transition: background 0.12s ease, border-color 0.12s ease, opacity 0.35s ease, transform 0.1s cubic-bezier(0.34,1.5,0.5,1);
-backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-}
-#top-stack.hud-hidden #hide-ui-btn { background: rgba(5,10,18,0.18); border-color: rgba(255,255,255,0.15); opacity: 0.55; }
-#top-stack.hud-hidden #hide-ui-btn:hover { opacity: 1; background: rgba(5,10,18,0.45); border-color: rgba(220,230,235,0.5); transform: scale(1.09); }
-#hide-ui-btn:hover { border-color: rgba(220,230,235,0.5); background: rgba(5,10,18,0.6); transform: scale(1.09); }
-#top-stack #hud-bottom { transition: opacity 0.32s cubic-bezier(0.22,1,0.36,1), transform 0.42s cubic-bezier(0.34,1.7,0.5,1), filter 0.3s ease, max-height 0.42s cubic-bezier(0.34,1.4,0.5,1), margin 0.42s cubic-bezier(0.34,1.4,0.5,1), padding 0.42s cubic-bezier(0.34,1.4,0.5,1); max-height: 200px; overflow: hidden; }
-#top-stack.hud-hidden #hud-bottom { opacity: 0; transform: translateY(-14px) scale(0.85); filter: blur(8px); max-height: 0; margin: 0; padding: 0; pointer-events: none; }
 
 /* -- Bottom-right: edge text -- */
 .edge-text-left {
@@ -308,15 +334,60 @@ background: rgba(10,14,20,0.85); border: 1px solid rgba(127,219,202,0.2);
 padding: 10px 16px; font-size: 11px; color: #7fdbca;
 pointer-events: none;
 }
-/* -- Loading bar -- */
-#load-bar {
-    position: fixed; top: 0; left: 0; height: 3px;
-    background: #5FEAD4;
-    box-shadow: 0 0 8px rgba(95,234,212,0.6);
-    z-index: 100; width: 10%;
-    transition: width 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.6s ease;
+
+/* ======================================
+   VISION MODES
+   ====================================== */
+
+/* CRT -- warm amber phosphor look */
+.mode-crt { --accent: #ffb347; --accent-dim: #805a24; --accent-bg: rgba(255,179,71,0.04); --accent-border: rgba(255,179,71,0.15); --bg: #0a0704; }
+.mode-crt { background: var(--bg); }
+.mode-crt .hud, .mode-crt .style-btn,
+.mode-crt .brand, .mode-crt .mode-label, .mode-crt .coord-value,
+.mode-crt #loc-input, .mode-crt #loc-go { color: var(--accent); }
+.mode-crt .style-btn,
+.mode-crt #loc-input, .mode-crt #loc-go { border-color: var(--accent-border); }
+.mode-crt .classification { color: #ff6633 !important; border-color: #ff6633 !important; }
+.mode-crt .hud-label, .mode-crt .subtitle, .mode-crt .summary-block,
+.mode-crt .ops-id, .mode-crt .coord-dms { color: #805a24; }
+.mode-crt #vignette {
+background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 30%, rgba(10,7,0,0.4) 55%, rgba(10,7,4,0.9) 75%, var(--bg) 100%);
 }
-#load-bar.done { opacity: 0; width: 100% !important; }
+
+/* Night Vision -- color grading handled by GPU shader */
+.mode-nightvision { --accent: #00ff41; --bg: #010d01; background: var(--bg); }
+.mode-nightvision .hud,
+.mode-nightvision .style-btn, .mode-nightvision .brand, .mode-nightvision .mode-label,
+.mode-nightvision .coord-value,
+.mode-nightvision #loc-input, .mode-nightvision #loc-go { color: var(--accent); }
+.mode-nightvision .style-btn,
+.mode-nightvision #loc-input, .mode-nightvision #loc-go { border-color: rgba(0,255,65,0.2); }
+.mode-nightvision #vignette {
+background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 30%, rgba(0,20,0,0.4) 55%, rgba(0,10,0,0.9) 75%, #010d01 100%);
+}
+.mode-nightvision body::before {
+background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,0,0.03) 2px, rgba(0,255,0,0.03) 3px);
+}
+.mode-nightvision .classification { color: #00ff41 !important; border-color: #00ff41 !important; }
+.mode-nightvision .hud-label, .mode-nightvision .subtitle, .mode-nightvision .summary-block,
+.mode-nightvision .ops-id, .mode-nightvision .coord-dms { color: #1a6630; }
+
+/* FLIR -- color grading handled by GPU shader */
+.mode-flir { --accent: #ff6b35; --bg: #0a0406; background: var(--bg); }
+.mode-flir .hud,
+.mode-flir .style-btn, .mode-flir .brand, .mode-flir .mode-label,
+.mode-flir .coord-value,
+.mode-flir #loc-input, .mode-flir #loc-go { color: var(--accent); }
+.mode-flir .style-btn,
+.mode-flir #loc-input, .mode-flir #loc-go { border-color: rgba(255,107,53,0.15); }
+.mode-flir .classification { color: #ff3333 !important; border-color: #ff3333 !important; }
+.mode-flir .hud-label, .mode-flir .subtitle, .mode-flir .summary-block,
+.mode-flir .ops-id, .mode-flir .edge-text-left, .mode-flir .edge-text-right { color: #663320; }
+.mode-flir #vignette {
+background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 30%, rgba(10,4,0,0.4) 55%, rgba(10,4,6,0.9) 75%, var(--bg) 100%);
+}
+
 /* Anime -- vibrant saturated cel-shading */
 .mode-anime { --accent: #ff69b4; --bg: #0a0610; background: var(--bg); }
 .mode-anime .hud,
@@ -331,6 +402,17 @@ pointer-events: none;
 .mode-anime #vignette {
 background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 35%, rgba(10,6,16,0.3) 55%, rgba(10,6,16,0.8) 75%, var(--bg) 100%);
 }
+
+/* -- Loading bar -- */
+#load-bar {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: #5FEAD4;
+    box-shadow: 0 0 8px rgba(95,234,212,0.6);
+    z-index: 100; width: 10%;
+    transition: width 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.6s ease;
+}
+#load-bar.done { opacity: 0; width: 100% !important; }
+
 /* -- Mobile / touch layout -- */
 @media (max-width: 900px) {
     /* Drop top-corner HUD blocks and bottom-left coordinates on mobile. */

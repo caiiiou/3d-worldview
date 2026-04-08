@@ -18,12 +18,13 @@
   <body class="mode-normal loc-expanded">
 
 <div id="cesiumContainer"></div>
+<div id="vignette"></div>
+
 <!-- Edge text -->
 <div class="edge-text-left">COLL: <span id="edge-time-l"></span></div>
 <div class="edge-text-right">GMA: 68.0</div>
 
 <!-- Compass -->
-
 <div id="compass">
     <svg viewBox="0 0 50 50">
         <circle cx="25" cy="25" r="22" stroke="rgba(127,219,202,0.2)" stroke-width="0.5" fill="none"/>
@@ -33,14 +34,21 @@
     </svg>
 </div>
 
-<div id="vignette"></div>
-
 <!-- HUD Top Left -->
 <div id="hud-topleft" class="hud">
     <div class="brand">WORLDVIEW</div>
     <div class="classification">TOP SECRET // SI-TK // NOFORN</div>
     <div class="ops-id">KH11-4084 OPS-4114</div>
     <div class="mode-label" id="mode-label">NORMAL</div>
+    <div class="summary-block">SUMMARY<br><span id="summary-text">TARGET: TOKYO DISNEYSEA</span></div>
+</div>
+
+<!-- HUD Top Right -->
+<div id="hud-topright" class="hud">
+    <div><span class="rec-dot"></span><span style="color:#e06c75;font-size:11px;">REC</span> <span id="rec-time" style="font-size:12px;color:#ffffff;"></span></div>
+    <div style="font-size:9px;color:#7a8a92;margin-top:3px;">ORB: 47916 PASS: DESC-192</div>
+    <div style="font-size:9px;color:#7a8a92;letter-spacing:2px;margin-top:10px;">ACTIVE STYLE</div>
+    <div id="active-style-name" style="font-size:14px;letter-spacing:2px;color:#ffffff;">NORMAL</div>
 </div>
 
 <!-- HUD Bottom Left -->
@@ -52,24 +60,9 @@
     <div class="coord-value" id="coord-speed" style="font-size:10px;color:#4a6670;">HDG: 0.0&deg;</div>
 </div>
 
-
-<!-- Top center stack: Style Presets + HUD toggle -->
-<div id="top-stack">
-    <div id="hud-bottom" class="hud hud-interactive">
-        <div class="hud-label">STYLE PRESETS</div>
-        <div id="style-presets">
-            <button class="style-btn active" data-mode="normal"><span class="key-hint">1</span>NORMAL</button>
-            <button class="style-btn" data-mode="crt"><span class="key-hint">2</span>CRT</button>
-            <button class="style-btn" data-mode="nightvision"><span class="key-hint">3</span>NIGHT VISION</button>
-            <button class="style-btn" data-mode="flir"><span class="key-hint">4</span>FLIR</button>
-            <button class="style-btn" data-mode="anime"><span class="key-hint">5</span>ANIME</button>
-        </div>
-    </div>
-</div>
-
 <!-- Bottom: Location -->
 <div id="loc-wrapper">
-<button id="loc-toggle">LOCATIONS <span id="loc-arrow">&#x25B2;</span><span class="enter-hint">ENTER</span></button>
+<button id="loc-toggle">LOCATIONS <span id="loc-arrow">▲</span><span class="enter-hint">ENTER</span></button>
 <div id="location-panel">
     <div class="loc-columns">
         <div class="loc-col">
@@ -95,12 +88,26 @@
 </div>
 </div>
 
+<!-- Top center stack: Style Presets + HUD toggle -->
+<div id="top-stack">
+    <div id="hud-bottom" class="hud hud-interactive">
+        <div class="hud-label">STYLE PRESETS</div>
+        <div id="style-presets">
+            <button class="style-btn active" data-mode="normal"><span class="key-hint">1</span>NORMAL</button>
+            <button class="style-btn" data-mode="crt"><span class="key-hint">2</span>CRT</button>
+            <button class="style-btn" data-mode="nightvision"><span class="key-hint">3</span>NIGHT VISION</button>
+            <button class="style-btn" data-mode="flir"><span class="key-hint">4</span>FLIR</button>
+            <button class="style-btn" data-mode="anime"><span class="key-hint">5</span>ANIME</button>
+        </div>
+    </div>
+    <button id="hide-ui-btn">HUD ▼<span class="enter-hint">TAB</span></button>
+</div>
+
 <!-- Measure overlay -->
 <div id="measure-info"></div>
 
 <!-- Loading bar -->
 <div id="load-bar"></div>
-
 
     <script is:inline src="https://cesium.com/downloads/cesiumjs/releases/1.119/Build/Cesium/Cesium.js"></script>
     <script src="../scripts/worldview.ts"></script>

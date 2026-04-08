@@ -1,6 +1,5 @@
 declare const Cesium: any;
 
-
 function cleanupLegacyOfflineState() {
         if (!('serviceWorker' in navigator) && !('caches' in window)) {
             return Promise.resolve(false);
@@ -91,7 +90,6 @@ function cleanupLegacyOfflineState() {
     var _schedulerMaximumRequests = _isMobile ? 10 : (_isConstrainedDevice ? 48 : 96);
     var _schedulerMaximumRequestsPerServer = _isMobile ? 4 : (_isConstrainedDevice ? 10 : 16);
 
-
     // Performance — globe terrain
     viewer.scene.globe.tileCacheSize = _globeTileCacheSize;
     viewer.scene.fog.enabled = false;
@@ -143,47 +141,6 @@ function cleanupLegacyOfflineState() {
         }
     });
 
-
-    // -- Loading progress --
-    document.body.classList.add('loading');
-    var _loadingCleared = false;
-    var _globeReady = false;
-    var _tilesetReady = false;
-    var domLoadBar = document.getElementById('load-bar');
-    var _peakRemaining = 1;
-
-    function clearLoading() {
-        if (_loadingCleared) return;
-        _loadingCleared = true;
-        domLoadBar.style.width = '100%';
-        setTimeout(function() {
-            domLoadBar.classList.add('done');
-            document.body.classList.remove('loading');
-        }, 400);
-    }
-    function checkReady() {
-        if (_globeReady && _tilesetReady) clearLoading();
-    }
-
-    viewer.scene.globe.tileLoadProgressEvent.addEventListener(function(remaining) {
-        if (remaining > _peakRemaining) _peakRemaining = remaining;
-        if (!_loadingCleared) {
-            var globePct = (1 - remaining / _peakRemaining) * 65;
-            var tilesPct = _tilesetReady ? 20 : 0;
-            domLoadBar.style.width = Math.min(95, 10 + globePct + tilesPct) + '%';
-        }
-        if (remaining === 0) { _globeReady = true; checkReady(); }
-    });
-
-    setTimeout(function() { if (_globeReady && !_loadingCleared) clearLoading(); }, 3500);
-    setTimeout(clearLoading, 5000);
-
-    // Start at Tokyo (Shibuya area)
-    viewer.camera.setView({
-        destination: Cesium.Cartesian3.fromDegrees(139.88940, 35.62459, 180),
-        orientation: { heading: Cesium.Math.toRadians(295), pitch: Cesium.Math.toRadians(-16), roll: 0 },
-    });
-
     // 3D Tiles
     var tileset3d = null;
     Cesium.Cesium3DTileset.fromIonAssetId(2275207, {
@@ -226,10 +183,58 @@ function cleanupLegacyOfflineState() {
         checkReady();
     });
 
+    // -- Loading progress --
+    // Track both globe terrain and 3D tileset readiness for a smooth transition.
+    document.body.classList.add('loading');
+    var _loadingCleared = false;
+    var _globeReady = false;
+    var _tilesetReady = false;
+    var domLoadBar = document.getElementById('load-bar');
+    var _peakRemaining = 1;
+
+    function clearLoading() {
+        if (_loadingCleared) return;
+        _loadingCleared = true;
+        domLoadBar.style.width = '100%';
+        setTimeout(function() {
+            domLoadBar.classList.add('done');
+            document.body.classList.remove('loading');
+        }, 400);
+    }
+    function checkReady() {
+        if (_globeReady && _tilesetReady) clearLoading();
+    }
+
+    viewer.scene.globe.tileLoadProgressEvent.addEventListener(function(remaining) {
+        if (remaining > _peakRemaining) _peakRemaining = remaining;
+        if (!_loadingCleared) {
+            var globePct = (1 - remaining / _peakRemaining) * 65;
+            var tilesPct = _tilesetReady ? 20 : 0;
+            domLoadBar.style.width = Math.min(95, 10 + globePct + tilesPct) + '%';
+        }
+        if (remaining === 0) { _globeReady = true; checkReady(); }
+    });
+
+    // If globe is ready but 3D tiles are slow, proceed anyway
+    setTimeout(function() { if (_globeReady && !_loadingCleared) clearLoading(); }, 3500);
+    // Hard safety cap
+    setTimeout(clearLoading, 5000);
+
+    // Start at Tokyo (Shibuya area) — instant, no fly animation
+    viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(139.88940, 35.62459, 180),
+        orientation: { heading: Cesium.Math.toRadians(295), pitch: Cesium.Math.toRadians(-16), roll: 0 },
+    });
 
     // -- Cached DOM refs --
     var domRecTime = document.getElementById('rec-time');
     var domEdgeTime = document.getElementById('edge-time-l');
+    var domDms = document.getElementById('coord-dms');
+    var domMgrs = document.getElementById('coord-mgrs');
+    var domAlt = document.getElementById('coord-alt');
+    var domHdg = document.getElementById('coord-speed');
+    var domNeedle = document.getElementById('compass-needle');
+    var domSummary = document.getElementById('summary-text');
 
     // -- Clock (user local timezone) --
     function pad2(n) { return (n < 10 ? '0' : '') + n; }
@@ -250,11 +255,6 @@ function cleanupLegacyOfflineState() {
     }
     updateClock();
     setInterval(updateClock, 1000);
-
-    var domDms = document.getElementById('coord-dms');
-    var domMgrs = document.getElementById('coord-mgrs');
-    var domAlt = document.getElementById('coord-alt');
-    var domHdg = document.getElementById('coord-speed');
 
     // -- Coordinates --
     function toDMS(deg) {
@@ -296,9 +296,6 @@ function cleanupLegacyOfflineState() {
         if (!_moveRaf) _moveRaf = requestAnimationFrame(updateCoords);
     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
-    var domNeedle = document.getElementById('compass-needle');
-    var domSummary = document.getElementById('summary-text');
-
     // -- Compass --
     var _lastHeading = -1;
     var _lastTilesetVisible = true;
@@ -319,10 +316,6 @@ function cleanupLegacyOfflineState() {
     // root-level tiles cover only parts of the globe and show up as dark
     // jagged polygons over the ocean when viewed from far out.
     var TILESET_SHOW_MAX_ALT = 1500000; // 1500 km
-    viewer.camera.moveEnd.addEventListener(function() {
-        var c = viewer.camera.positionCartographic;
-        domSummary.textContent = 'OBSERVING ' + Cesium.Math.toDegrees(c.latitude).toFixed(2) + ', ' + Cesium.Math.toDegrees(c.longitude).toFixed(2);
-    });
     viewer.camera.moveEnd.addEventListener(function() {
         var c = viewer.camera.positionCartographic;
         domSummary.textContent = 'OBSERVING ' + Cesium.Math.toDegrees(c.latitude).toFixed(2) + ', ' + Cesium.Math.toDegrees(c.longitude).toFixed(2);
@@ -384,10 +377,6 @@ function cleanupLegacyOfflineState() {
         ].join('\n')
     });
 
-    crtShader.enabled = false;
-    nvShader.enabled = false;
-    flirShader.enabled = false;
-
     // Anime shader: vibrant cel-shading with subtle outlines
     var animeShader = new Cesium.PostProcessStage({
         fragmentShader: [
@@ -425,6 +414,9 @@ function cleanupLegacyOfflineState() {
         ].join('\n')
     });
 
+    crtShader.enabled = false;
+    nvShader.enabled = false;
+    flirShader.enabled = false;
     animeShader.enabled = false;
     viewer.scene.postProcessStages.add(crtShader);
     viewer.scene.postProcessStages.add(nvShader);
@@ -454,11 +446,21 @@ function cleanupLegacyOfflineState() {
         });
     }
 
+    // -- Cached toggle DOM refs --
+    var domLocPanel = document.getElementById('location-panel');
+    var domLocToggle = document.getElementById('loc-toggle');
+    var domTopStack = document.getElementById('top-stack');
+    var domLocWrapper = document.getElementById('loc-wrapper');
+    var domCompass = document.getElementById('compass');
 
+    var domHideBtn = document.getElementById('hide-ui-btn');
+    var domEdgeTexts = document.querySelectorAll('.edge-text-left, .edge-text-right');
+    var domHuds = document.querySelectorAll('.hud');
     var domModeLabel = document.getElementById('mode-label');
     var domActiveStyle = document.getElementById('active-style-name');
     var styleButtons = document.querySelectorAll('.style-btn');
 
+    // -- Style presets --
     var shaderMap = {
         crt: crtShader,
         nightvision: nvShader,
@@ -491,6 +493,7 @@ function cleanupLegacyOfflineState() {
         var name = modeNames[mode] || mode.toUpperCase();
         domModeLabel.textContent = name;
         domActiveStyle.textContent = name;
+
         var keys = Object.keys(shaderMap);
         for (var j = 0; j < keys.length; j++) {
             shaderMap[keys[j]].enabled = (keys[j] === mode);
@@ -555,35 +558,6 @@ function cleanupLegacyOfflineState() {
         viewer.scene.requestRender();
     });
 
-    // -- Scene quick jumps --
-    // -- Scenes (Q/W/E/R/T quick jumps) --
-    var sceneKeys = ['statue of liberty', 'golden gate bridge', 'white house', 'washington monument', 'space needle'];
-    function flyToScene(idx) {
-        if (idx >= 0 && idx < sceneKeys.length) flyToLocation(sceneKeys[idx]);
-    }
-
-    // -- Keyboard shortcuts --
-    document.addEventListener('keydown', function(e) {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
-            if (e.key === 'Escape') { e.target.blur(); }
-            return;
-        }
-        switch(e.key) {
-            case '1': setVisionMode('normal'); break;
-            case '2': setVisionMode('crt'); break;
-            case '3': setVisionMode('nightvision'); break;
-            case '4': setVisionMode('flir'); break;
-            case '5': setVisionMode('anime'); break;
-            case 'Enter': toggleLocPanel(); break;
-            case 'Tab': e.preventDefault(); toggleHUD(); break;
-            case ' ':
-                if (domLocPanel.classList.contains('collapsed')) toggleLocPanel();
-                locInput.focus();
-                e.preventDefault();
-                break;
-        }
-    });
-
     // -- Location search --
     // [lon, lat, range, type, country]
     var locations = {
@@ -611,53 +585,90 @@ function cleanupLegacyOfflineState() {
 
     var countryNames = { 'US': 'UNITED STATES' };
 
-    var countryNames = { 'US': 'UNITED STATES' };
+    var locInput = document.getElementById('loc-input');
+    var acDropdown = document.getElementById('loc-autocomplete');
+    var acSelectedIdx = -1;
 
-    // -- Build location tags grouped by country --
-    (function() {
-        var landmarkEl = document.getElementById('loc-landmarks');
-        var cityEl = document.getElementById('loc-cities');
-        var countryOrder = ['US'];
-        var _activeTag = null;
-        function makeTag(key, loc) {
-            var btn = document.createElement('button');
-            btn.className = 'loc-tag' + (loc[3] === 'landmark' ? ' landmark' : ' city');
-            btn.textContent = key.toUpperCase();
-            btn.addEventListener('click', function() {
-                if (_activeTag) _activeTag.classList.remove('active');
-                btn.classList.add('active');
-                _activeTag = btn;
-                flyToLocation(key);
-            });
-            return btn;
+    locInput.addEventListener('keydown', function(e) {
+        var items = acDropdown.querySelectorAll('.loc-ac-item');
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            acSelectedIdx = Math.min(acSelectedIdx + 1, items.length - 1);
+            updateAcSelection(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            acSelectedIdx = Math.max(acSelectedIdx - 1, -1);
+            updateAcSelection(items);
+        } else if (e.key === 'Enter') {
+            if (acSelectedIdx >= 0 && items[acSelectedIdx]) {
+                items[acSelectedIdx].click();
+            } else {
+                hideAutocomplete();
+                flyToLocation();
+            }
+        } else if (e.key === 'Escape') {
+            hideAutocomplete();
         }
-        function buildGroup(parentEl, type) {
-            var grouped = {};
-            Object.keys(locations).forEach(function(key) {
-                var loc = locations[key];
-                if (loc[3] !== type) return;
-                var c = loc[4];
-                if (!grouped[c]) grouped[c] = [];
-                grouped[c].push(key);
-            });
-            countryOrder.forEach(function(c) {
-                if (!grouped[c]) return;
-                var label = document.createElement('div');
-                label.className = 'loc-country-label';
-                label.textContent = countryNames[c] || c;
-                parentEl.appendChild(label);
-                var tags = document.createElement('div');
-                tags.className = 'loc-tags';
-                grouped[c].forEach(function(key) {
-                    tags.appendChild(makeTag(key, locations[key]));
-                });
-                parentEl.appendChild(tags);
-            });
-        }
-        buildGroup(landmarkEl, 'landmark');
-        buildGroup(cityEl, 'city');
-    })();
+    });
 
+    var _acTimer = null;
+    locInput.addEventListener('input', function() {
+        var self = this;
+        clearTimeout(_acTimer);
+        _acTimer = setTimeout(function() {
+            var q = self.value.toLowerCase().trim();
+            if (q.length < 1) { hideAutocomplete(); return; }
+            var matches = [];
+            var keys = Object.keys(locations);
+            for (var i = 0; i < keys.length; i++) {
+                if (keys[i].indexOf(q) !== -1) {
+                    var loc = locations[keys[i]];
+                    matches.push({ name: keys[i], type: loc[3], country: loc[4] });
+                }
+            }
+            if (matches.length === 0) { hideAutocomplete(); return; }
+            acDropdown.innerHTML = '';
+            acSelectedIdx = -1;
+            for (var j = 0; j < matches.length; j++) {
+                (function(m, idx) {
+                    var div = document.createElement('div');
+                    div.className = 'loc-ac-item';
+                    var typeLabel = m.type === 'landmark' ? 'LANDMARK' : 'CITY';
+                    div.innerHTML = m.name.toUpperCase() + '<span class="ac-type">' + typeLabel + ' / ' + (countryNames[m.country] || m.country) + '</span>';
+                    div.addEventListener('click', function() {
+                        locInput.value = m.name;
+                        hideAutocomplete();
+                        flyToLocation(m.name);
+                    });
+                    div.addEventListener('mouseenter', function() {
+                        acSelectedIdx = idx;
+                        updateAcSelection(acDropdown.querySelectorAll('.loc-ac-item'));
+                    });
+                    acDropdown.appendChild(div);
+                })(matches[j], j);
+            }
+            acDropdown.style.display = 'block';
+        }, 60);
+    });
+
+    locInput.addEventListener('blur', function() {
+        setTimeout(hideAutocomplete, 150);
+    });
+
+    function hideAutocomplete() {
+        acDropdown.style.display = 'none';
+        acSelectedIdx = -1;
+    }
+
+    function updateAcSelection(items) {
+        items.forEach(function(el, i) {
+            el.classList.toggle('selected', i === acSelectedIdx);
+        });
+    }
+
+    // Crank up concurrent requests for the fastest possible loads.
+    Cesium.RequestScheduler.maximumRequests = _schedulerMaximumRequests;
+    Cesium.RequestScheduler.maximumRequestsPerServer = _schedulerMaximumRequestsPerServer;
 
     var _baseSSE = viewer.scene.globe.maximumScreenSpaceError;
     var _baseTilesetSSE = _tilesetMaximumSSE;
@@ -760,6 +771,7 @@ function cleanupLegacyOfflineState() {
                     document.getElementById('loc-landmark').textContent = '--';
                     return;
                 }
+                // Prefer buildings/tourism/landmarks over generic places
                 var priority = ['tourism', 'historic', 'building', 'amenity', 'shop', 'leisure', 'highway', 'place', 'boundary'];
                 var hit = data[0];
                 for (var p = 0; p < priority.length; p++) {
@@ -773,10 +785,12 @@ function cleanupLegacyOfflineState() {
                 var range = 1200;
                 var type = 'city';
 
+                // Smart range from bounding box if available
                 if (hit.boundingbox) {
                     var dlat = Math.abs(parseFloat(hit.boundingbox[1]) - parseFloat(hit.boundingbox[0]));
                     var dlon = Math.abs(parseFloat(hit.boundingbox[3]) - parseFloat(hit.boundingbox[2]));
                     var span = Math.max(dlat, dlon);
+                    // Convert degree span to approximate meters, then to camera range
                     var spanM = span * 111000;
                     range = Math.max(200, Math.min(spanM * 2.5, 500000));
                 }
@@ -806,94 +820,55 @@ function cleanupLegacyOfflineState() {
     }
     (window as any).flyToLocation = flyToLocation;
 
-    var locInput = document.getElementById('loc-input');
-    var acDropdown = document.getElementById('loc-autocomplete');
-    var acSelectedIdx = -1;
+    // -- Build location tags grouped by country --
+    (function() {
+        var landmarkEl = document.getElementById('loc-landmarks');
+        var cityEl = document.getElementById('loc-cities');
+        var countryOrder = ['US'];
 
-    locInput.addEventListener('keydown', function(e) {
-        var items = acDropdown.querySelectorAll('.loc-ac-item');
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            acSelectedIdx = Math.min(acSelectedIdx + 1, items.length - 1);
-            updateAcSelection(items);
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            acSelectedIdx = Math.max(acSelectedIdx - 1, -1);
-            updateAcSelection(items);
-        } else if (e.key === 'Enter') {
-            if (acSelectedIdx >= 0 && items[acSelectedIdx]) {
-                items[acSelectedIdx].click();
-            } else {
-                hideAutocomplete();
-                flyToLocation();
-            }
-        } else if (e.key === 'Escape') {
-            hideAutocomplete();
+        var _activeTag = null;
+        function makeTag(key, loc) {
+            var btn = document.createElement('button');
+            btn.className = 'loc-tag' + (loc[3] === 'landmark' ? ' landmark' : ' city');
+            btn.textContent = key.toUpperCase();
+            btn.addEventListener('click', function() {
+                if (_activeTag) _activeTag.classList.remove('active');
+                btn.classList.add('active');
+                _activeTag = btn;
+                flyToLocation(key);
+            });
+            return btn;
         }
-    });
 
-    var _acTimer = null;
-    locInput.addEventListener('input', function() {
-        var self = this;
-        clearTimeout(_acTimer);
-        _acTimer = setTimeout(function() {
-            var q = self.value.toLowerCase().trim();
-            if (q.length < 1) { hideAutocomplete(); return; }
-            var matches = [];
-            var keys = Object.keys(locations);
-            for (var i = 0; i < keys.length; i++) {
-                if (keys[i].indexOf(q) !== -1) {
-                    var loc = locations[keys[i]];
-                    matches.push({ name: keys[i], type: loc[3], country: loc[4] });
-                }
-            }
-            if (matches.length === 0) { hideAutocomplete(); return; }
-            acDropdown.innerHTML = '';
-            acSelectedIdx = -1;
-            for (var j = 0; j < matches.length; j++) {
-                (function(m, idx) {
-                    var div = document.createElement('div');
-                    div.className = 'loc-ac-item';
-                    var typeLabel = m.type === 'landmark' ? 'LANDMARK' : 'CITY';
-                    div.innerHTML = m.name.toUpperCase() + '<span class="ac-type">' + typeLabel + ' / ' + (countryNames[m.country] || m.country) + '</span>';
-                    div.addEventListener('click', function() {
-                        locInput.value = m.name;
-                        hideAutocomplete();
-                        flyToLocation(m.name);
-                    });
-                    div.addEventListener('mouseenter', function() {
-                        acSelectedIdx = idx;
-                        updateAcSelection(acDropdown.querySelectorAll('.loc-ac-item'));
-                    });
-                    acDropdown.appendChild(div);
-                })(matches[j], j);
-            }
-            acDropdown.style.display = 'block';
-        }, 60);
-    });
+        function buildGroup(parentEl, type) {
+            var grouped = {};
+            Object.keys(locations).forEach(function(key) {
+                var loc = locations[key];
+                if (loc[3] !== type) return;
+                var c = loc[4];
+                if (!grouped[c]) grouped[c] = [];
+                grouped[c].push(key);
+            });
+            countryOrder.forEach(function(c) {
+                if (!grouped[c]) return;
+                var label = document.createElement('div');
+                label.className = 'loc-country-label';
+                label.textContent = countryNames[c] || c;
+                parentEl.appendChild(label);
+                var tags = document.createElement('div');
+                tags.className = 'loc-tags';
+                grouped[c].forEach(function(key) {
+                    tags.appendChild(makeTag(key, locations[key]));
+                });
+                parentEl.appendChild(tags);
+            });
+        }
 
-    locInput.addEventListener('blur', function() {
-        setTimeout(hideAutocomplete, 150);
-    });
+        buildGroup(landmarkEl, 'landmark');
+        buildGroup(cityEl, 'city');
+    })();
 
-    // Crank up concurrent requests for the fastest possible loads.
-    Cesium.RequestScheduler.maximumRequests = _schedulerMaximumRequests;
-    Cesium.RequestScheduler.maximumRequestsPerServer = _schedulerMaximumRequestsPerServer;
-
-    function hideAutocomplete() {
-        acDropdown.style.display = 'none';
-        acSelectedIdx = -1;
-    }
-
-    function updateAcSelection(items) {
-        items.forEach(function(el, i) {
-            el.classList.toggle('selected', i === acSelectedIdx);
-        });
-    }
-
-    var domLocPanel = document.getElementById('location-panel');
-    var domLocToggle = document.getElementById('loc-toggle');
-
+    // -- Location panel toggle --
     function toggleLocPanel() {
         var wasCollapsed = domLocPanel.classList.contains('collapsed');
         domLocPanel.classList.toggle('collapsed');
@@ -907,15 +882,7 @@ function cleanupLegacyOfflineState() {
         }
     }
 
-    domLocToggle.addEventListener('click', toggleLocPanel);
-
-    var domTopStack = document.getElementById('top-stack');
-    var domLocWrapper = document.getElementById('loc-wrapper');
-    var domCompass = document.getElementById('compass');
-    var domHideBtn = document.getElementById('hide-ui-btn');
-    var domEdgeTexts = document.querySelectorAll('.edge-text-left, .edge-text-right');
-    var domHuds = document.querySelectorAll('.hud');
-
+    // -- Toggles --
     var hudVisible = true;
     function toggleHUD() {
         hudVisible = !hudVisible;
@@ -952,10 +919,37 @@ function cleanupLegacyOfflineState() {
         domHideBtn.innerHTML = 'HUD ' + (hudVisible ? '▼' : '▲') + '<span class="enter-hint">TAB</span>';
     }
 
+    domLocToggle.addEventListener('click', toggleLocPanel);
     domHideBtn.addEventListener('click', toggleHUD);
 
+    // -- Scenes (Q/W/E/R/T quick jumps) --
+    var sceneKeys = ['statue of liberty', 'golden gate bridge', 'white house', 'washington monument', 'space needle'];
+    function flyToScene(idx) {
+        if (idx >= 0 && idx < sceneKeys.length) flyToLocation(sceneKeys[idx]);
+    }
+
+    // -- Keyboard shortcuts --
+    document.addEventListener('keydown', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+            if (e.key === 'Escape') { e.target.blur(); }
+            return;
+        }
+        switch(e.key) {
+            case '1': setVisionMode('normal'); break;
+            case '2': setVisionMode('crt'); break;
+            case '3': setVisionMode('nightvision'); break;
+            case '4': setVisionMode('flir'); break;
+            case '5': setVisionMode('anime'); break;
+            case 'Enter': toggleLocPanel(); break;
+            case 'Tab': e.preventDefault(); toggleHUD(); break;
+            case ' ':
+                if (domLocPanel.classList.contains('collapsed')) toggleLocPanel();
+                locInput.focus();
+                e.preventDefault();
+                break;
+        }
+    });
 
     }).catch(function(err) {
         console.error('Viewer startup failed:', err);
     });
-
