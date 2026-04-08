@@ -431,6 +431,30 @@ function cleanupLegacyOfflineState() {
     viewer.scene.postProcessStages.add(flirShader);
     viewer.scene.postProcessStages.add(animeShader);
 
+    // Pre-compile all shaders on desktop (skip on mobile to avoid GPU spike)
+    if (_isMobile) { /* shaders compile on first use */ } else {
+        var scheduleIdle = (window as any).requestIdleCallback || function(cb: () => void) {
+            return setTimeout(cb, 2500);
+        };
+        scheduleIdle(function() {
+            var shaders = [crtShader, nvShader, flirShader, animeShader];
+            var idx = 0;
+            function warmNext() {
+                if (idx >= shaders.length) return;
+                shaders[idx].enabled = true;
+                viewer.scene.requestRender();
+                var current = idx;
+                requestAnimationFrame(function() {
+                    shaders[current].enabled = false;
+                    idx++;
+                    warmNext();
+                });
+            }
+            warmNext();
+        });
+    }
+
+
     var domModeLabel = document.getElementById('mode-label');
     var domActiveStyle = document.getElementById('active-style-name');
     var styleButtons = document.querySelectorAll('.style-btn');
@@ -478,6 +502,64 @@ function cleanupLegacyOfflineState() {
         styleButtons[si].addEventListener('click', function() {
             setVisionMode(this.dataset.mode);
         });
+    }
+
+    // -- Bloom (keyboard B) --
+    var bloomOn = false;
+    function toggleBloom() {
+        bloomOn = !bloomOn;
+        if (bloomOn) {
+            viewer.scene.postProcessStages.bloom.enabled = true;
+            viewer.scene.postProcessStages.bloom.uniforms.glowOnly = false;
+            viewer.scene.postProcessStages.bloom.uniforms.brightness = 0.08;
+        } else {
+            viewer.scene.postProcessStages.bloom.enabled = false;
+        }
+        viewer.scene.requestRender();
+    }
+
+    // -- Move: orbit around current look-at point (keyboard M) --
+    var autoRotate = false;
+    var orbitCenter = null;
+    var orbitRange = null;
+    var orbitAngle = 0;
+    var orbitPitch = null;
+
+    function toggleMove() {
+        autoRotate = !autoRotate;
+        if (autoRotate) {
+            var ray = viewer.camera.getPickRay(new Cesium.Cartesian2(
+                viewer.canvas.clientWidth / 2, viewer.canvas.clientHeight / 2
+            ));
+            var hit = viewer.scene.globe.pick(ray, viewer.scene);
+            if (hit) {
+                orbitCenter = hit;
+            } else {
+                var camCart = viewer.camera.positionCartographic;
+                orbitCenter = Cesium.Cartesian3.fromRadians(camCart.longitude, camCart.latitude, 0);
+            }
+            orbitRange = Cesium.Cartesian3.distance(viewer.camera.position, orbitCenter);
+            orbitAngle = viewer.camera.heading;
+            orbitPitch = viewer.camera.pitch;
+        } else {
+            viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+        }
+    }
+
+    viewer.clock.onTick.addEventListener(function() {
+        if (!autoRotate || !orbitCenter) return;
+        orbitAngle += 0.003;
+        viewer.camera.lookAt(orbitCenter, new Cesium.HeadingPitchRange(
+            orbitAngle, orbitPitch, orbitRange
+        ));
+        viewer.scene.requestRender();
+    });
+
+    // -- Scene quick jumps --
+    // -- Scenes (Q/W/E/R/T quick jumps) --
+    var sceneKeys = ['statue of liberty', 'golden gate bridge', 'white house', 'washington monument', 'space needle'];
+    function flyToScene(idx) {
+        if (idx >= 0 && idx < sceneKeys.length) flyToLocation(sceneKeys[idx]);
     }
 
     // -- Keyboard shortcuts --
@@ -843,12 +925,31 @@ function cleanupLegacyOfflineState() {
             domHuds[i].classList.toggle('hud-fade', hide);
         }
         domTopStack.classList.toggle('hud-hidden', hide);
-        domLocWrapper.classList.toggle('ui-hidden', hide);
+        if (!hide) {
+            // Unhide loc-wrapper with just opacity+transform (no filter blur).
+            // The parent's filter:blur re-composites the child panel's
+            // backdrop-filter, costing an extra frame — bypass it entirely.
+            domLocWrapper.style.transition = 'none';
+            domLocWrapper.style.transform = 'translateX(-50%) translateY(14px) scale(0.85)';
+            domLocWrapper.style.opacity = '0';
+            domLocWrapper.style.filter = 'none';
+            domLocWrapper.classList.remove('ui-hidden');
+            void domLocWrapper.offsetWidth; // reflow so start state sticks
+            domLocWrapper.style.transition = 'opacity 0.3s cubic-bezier(0.22,1,0.36,1), transform 0.42s cubic-bezier(0.34,1.7,0.5,1)';
+            domLocWrapper.style.transform = '';
+            domLocWrapper.style.opacity = '';
+            setTimeout(function() {
+                domLocWrapper.style.transition = '';
+                domLocWrapper.style.filter = '';
+            }, 460);
+        } else {
+            domLocWrapper.classList.add('ui-hidden');
+        }
         domCompass.classList.toggle('ui-hidden', hide);
         for (var j = 0; j < domEdgeTexts.length; j++) {
             domEdgeTexts[j].classList.toggle('ui-hidden', hide);
         }
-        domHideBtn.innerHTML = 'HUD ' + (hudVisible ? '\u25BC' : '\u25B2') + '<span class="enter-hint">TAB</span>';
+        domHideBtn.innerHTML = 'HUD ' + (hudVisible ? '▼' : '▲') + '<span class="enter-hint">TAB</span>';
     }
 
     domHideBtn.addEventListener('click', toggleHUD);
